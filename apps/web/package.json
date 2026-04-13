@@ -18,6 +18,7 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-qr-code": "^2.0.18",
     "tailwind-merge": "latest",
     "zustand": "latest"
   },

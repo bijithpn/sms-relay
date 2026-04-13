@@ -4,6 +4,8 @@ import { User } from './entities/user.entity';
 import { Device } from './entities/device.entity';
 import { SMSTask } from './entities/sms_task.entity';
 import { AuthModule } from './auth/auth.module';
+import { DevicesModule } from './devices/devices.module';
+import { TasksModule } from './jobs/tasks.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { AuthModule } from './auth/auth.module';
     }),
     TypeOrmModule.forFeature([User, Device, SMSTask]),
     AuthModule,
+    DevicesModule,
+    TasksModule,
   ],
   controllers: [],
   providers: [],

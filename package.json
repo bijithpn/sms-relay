@@ -7,8 +7,9 @@
     "packages/*"
   ],
   "scripts": {
+    "infra": "docker-compose up -d redis postgres",
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "pnpm infra && turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },

@@ -5,6 +5,21 @@ import { GLOBAL_CONFIG } from '@sms-saas/config';
 
 const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
+  retryStrategy(times) {
+    const delay = Math.min(times * 50, 2000);
+    return delay;
+  },
+});
+
+connection.on('error', (err: any) => {
+  if (err.code === 'ECONNREFUSED') {
+    console.error('❌ Redis Connection Refused at', err.address, ':', err.port);
+    console.error('👉 Ensure Redis is running: `docker-compose up -d redis`');
+  }
+});
+
+connection.on('connect', () => {
+  console.log('✅ Worker connected to Redis');
 });
 
 export const smsQueue = new Queue('sms-tasks', { connection });

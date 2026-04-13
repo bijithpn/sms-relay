@@ -11,17 +11,18 @@
     "@nestjs/core": "latest",
     "@nestjs/platform-express": "latest",
     "@nestjs/typeorm": "latest",
-    "typeorm": "latest",
-    "pg": "latest",
-    "bullmq": "latest",
-    "zod": "latest",
-    "socket.io": "latest",
+    "@sms-saas/config": "workspace:*",
     "@sms-saas/types": "workspace:*",
-    "@sms-saas/config": "workspace:*"
+    "bullmq": "latest",
+    "pg": "latest",
+    "socket.io": "latest",
+    "typeorm": "latest",
+    "zod": "latest"
   },
   "devDependencies": {
     "@nestjs/cli": "latest",
     "@nestjs/testing": "latest",
+    "@types/node": "^25.6.0",
     "typescript": "latest"
   }
 }

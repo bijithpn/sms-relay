@@ -1,0 +1,17 @@
+{
+  "name": "@sms-saas/worker",
+  "version": "0.0.1",
+  "description": "SMS Task Processor and Delivery Tracker",
+  "dependencies": {
+    "bullmq": "latest",
+    "ioredis": "latest",
+    "pg": "latest",
+    "typeorm": "latest",
+    "@sms-saas/types": "workspace:*",
+    "@sms-saas/config": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/node": "latest"
+  }
+}

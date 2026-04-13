@@ -1,12 +1,12 @@
 {
-  "name": "@sms-saas/worker",
+  "name": "@sms-saas/router",
   "version": "0.0.1",
   "scripts": {
     "dev": "ts-node src/index.ts",
+    "test": "ts-node src/test-router.ts",
     "build": "tsc"
   },
   "dependencies": {
-    "bullmq": "latest",
     "ioredis": "latest",
     "pg": "latest",
     "typeorm": "latest",

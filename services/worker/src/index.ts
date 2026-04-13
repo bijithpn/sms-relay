@@ -3,30 +3,31 @@ import IORedis from 'ioredis';
 import { SMSTask } from '@sms-saas/types';
 import { GLOBAL_CONFIG } from '@sms-saas/config';
 
-const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
+const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  maxRetriesPerRequest: null,
+});
 
 export const smsQueue = new Queue('sms-tasks', { connection });
 
 export const smsWorker = new Worker(
   'sms-tasks',
-  async (job: Job<<SMSMSTask>) => {
+  async (job) => {
+    const task = job.data as SMSTask;
     console.log(`Processing SMS Task: ${job.id}`);
 
     try {
-      // 1. Validate Task State
-      if (job.attempts >= GLOBAL_CONFIG.RETRY_LIMIT) {
+      // BullMQ Job attempts are available on the job object
+      const attempts = (job as any).attempts;
+      if (attempts && attempts >= GLOBAL_CONFIG.RETRY_LIMIT) {
         throw new Error('Max retries reached');
       }
 
-      // 2. Trigger Routing / Dispatch
-      // In a real scenario, this would communicate with the Router service
-      // or send a message via WebSocket to the assigned device.
-      await dispatchToDevice(job.data);
+      await dispatchToDevice(task);
 
-      return { status: 'DISPATCHED', taskId: job.data.id };
-    } catch (error) {
-      console.error(`Task ${job.data.id} failed: ${error.message}`);
-      throw error; // Allow BullMQ to handle retry
+      return { status: 'DISPATCHED', taskId: task.id };
+    } catch (error: any) {
+      console.error(`Task ${task?.id} failed: ${error.message}`);
+      throw error;
     }
   },
   { connection }
@@ -34,5 +35,4 @@ export const smsWorker = new Worker(
 
 async function dispatchToDevice(task: SMSTask) {
   console.log(`Dispatching task ${task.id} to device ${task.assignedDeviceId}`);
-  // Logic to send via WebSocket/Push Notification to the Android device
 }

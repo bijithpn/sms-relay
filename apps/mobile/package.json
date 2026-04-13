@@ -1,0 +1,18 @@
+{
+  "name": "@sms-saas/mobile",
+  "version": "0.0.1",
+  "description": "Android SMS Node App",
+  "dependencies": {
+    "react": "latest",
+    "react-native": "latest",
+    "socket.io-client": "latest",
+    "react-native-permissions": "latest",
+    "@sms-saas/types": "workspace:*",
+    "@sms-saas/config": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-native": "latest",
+    "typescript": "latest"
+  }
+}

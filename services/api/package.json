@@ -1,7 +1,11 @@
 {
   "name": "@sms-saas/api",
   "version": "0.0.1",
-  "description": "Core API for SMS Relay Network",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "nest start"
+  },
   "dependencies": {
     "@nestjs/common": "latest",
     "@nestjs/core": "latest",

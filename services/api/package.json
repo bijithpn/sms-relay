@@ -1,0 +1,23 @@
+{
+  "name": "@sms-saas/api",
+  "version": "0.0.1",
+  "description": "Core API for SMS Relay Network",
+  "dependencies": {
+    "@nestjs/common": "latest",
+    "@nestjs/core": "latest",
+    "@nestjs/platform-express": "latest",
+    "@nestjs/typeorm": "latest",
+    "typeorm": "latest",
+    "pg": "latest",
+    "bullmq": "latest",
+    "zod": "latest",
+    "socket.io": "latest",
+    "@sms-saas/types": "workspace:*",
+    "@sms-saas/config": "workspace:*"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "latest",
+    "@nestjs/testing": "latest",
+    "typescript": "latest"
+  }
+}

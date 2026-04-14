@@ -81,8 +81,14 @@ class ServerService {
 
     final handler = Pipeline()
         .addMiddleware(logRequests())
+        .addMiddleware(_corsMiddleware()) // Enable CORS for Web Browsers
         .addMiddleware(_authMiddleware(_apiKey))
-        .addHandler((Request request) => router.call(request));
+        .addHandler((Request request) {
+      if (request.method == 'OPTIONS') {
+        return Response.ok('', headers: _corsHeaders());
+      }
+      return router.call(request);
+    });
 
     try {
       _server = await io.serve(handler, InternetAddress.anyIPv4, _port);
@@ -98,6 +104,26 @@ class ServerService {
     await _server!.close(force: true);
     _server = null;
     AppLogger.server('Server stopped');
+  }
+
+  Map<String, String> _corsHeaders() {
+    return {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization, Accept',
+    };
+  }
+
+  Middleware _corsMiddleware() {
+    return (innerHandler) {
+      return (request) async {
+        if (request.method == 'OPTIONS') {
+          return Response.ok('', headers: _corsHeaders());
+        }
+        final response = await innerHandler(request);
+        return response.change(headers: _corsHeaders());
+      };
+    };
   }
 
   Middleware _authMiddleware(String validKey) {

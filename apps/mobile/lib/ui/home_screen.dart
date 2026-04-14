@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/constants.dart';
+import '../core/theme.dart';
 import '../state/app_state.dart';
 import '../utils/logger.dart';
 import 'widgets/status_card.dart';
@@ -31,9 +32,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showToast(LogEntry entry) {
     if (!mounted) return;
-    
+
     final isError = entry.type == LogType.error;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -44,13 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
               size: 20,
             ),
             const SizedBox(width: 12),
-            Expanded(child: Text(entry.message, style: const TextStyle(fontSize: 13))),
+            Expanded(child: Text(entry.message, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400))),
           ],
         ),
-        backgroundColor: isError ? AppConstants.errorColor : AppConstants.activeColor,
+        backgroundColor: isError ? Colors.red : AppTheme.mistralOrange,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -60,10 +61,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppConstants.appName, style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+        title: const Text(AppConstants.appName, style: TextStyle(fontWeight: FontWeight.w400, letterSpacing: 1.1, color: AppTheme.mistralBlack)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: AppTheme.mistralBlack),
             onPressed: () => context.read<AppState>().syncWithBackend(),
             tooltip: 'Manual Sync',
           ),
@@ -75,8 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).scaffoldBackgroundColor,
-              Theme.of(context).scaffoldBackgroundColor.withAlpha(200),
+              AppTheme.warmIvory,
+              AppTheme.warmIvory.withOpacity(0.8),
             ],
           ),
         ),
@@ -106,8 +107,8 @@ class _HomeScreenState extends State<HomeScreen> {
         title.toUpperCase(),
         style: const TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: Colors.blueGrey,
+          fontWeight: FontWeight.w400,
+          color: Color(0xFF3C3C3C),
           letterSpacing: 1.5,
         ),
       ),

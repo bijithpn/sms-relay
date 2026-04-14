@@ -29,7 +29,7 @@ class SmsGatewayApp extends StatelessWidget {
     return MaterialApp(
       title: 'SMS Gateway',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.mistralTheme,
       home: const HomeScreen(),
     );
   }

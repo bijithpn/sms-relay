@@ -12,8 +12,8 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Card = ({ children, className, ...props }: CardProps) => {
   return (
-    <div 
-      className={cn("bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden", className)} 
+    <div
+      className={cn("bg-warm-ivory rounded-none border-none shadow-golden-hour overflow-hidden", className)}
       {...props}
     >
       {children}
@@ -23,7 +23,7 @@ export const Card = ({ children, className, ...props }: CardProps) => {
 
 export const CardHeader = ({ children, className, ...props }: CardProps) => {
   return (
-    <div className={cn("px-6 py-4 border-b border-slate-100", className)} {...props}>
+    <div className={cn("px-6 py-4 border-b border-block-gold/30", className)} {...props}>
       {children}
     </div>
   );
@@ -39,7 +39,7 @@ export const CardContent = ({ children, className, ...props }: CardProps) => {
 
 export const CardFooter = ({ children, className, ...props }: CardProps) => {
   return (
-    <div className={cn("px-6 py-4 bg-slate-50 border-t border-slate-100", className)} {...props}>
+    <div className={cn("px-6 py-4 bg-cream border-t border-block-gold/30", className)} {...props}>
       {children}
     </div>
   );

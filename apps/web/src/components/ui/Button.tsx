@@ -32,25 +32,25 @@ export const Button = ({
   ...props 
 }: ButtonProps) => {
   const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 border-transparent disabled:bg-blue-300',
-    secondary: 'bg-slate-800 text-white hover:bg-slate-900 border-transparent disabled:bg-slate-400',
-    outline: 'bg-transparent text-slate-700 border-slate-200 hover:bg-slate-50 disabled:text-slate-400',
-    ghost: 'bg-transparent text-slate-600 border-transparent hover:bg-slate-100 disabled:text-slate-300',
+    primary: 'bg-mistral-black text-white hover:bg-black border-transparent disabled:bg-slate-300',
+    secondary: 'bg-cream text-mistral-black hover:bg-block-gold border-transparent disabled:bg-slate-200',
+    outline: 'bg-transparent text-mistral-black border-slate-200 hover:bg-warm-ivory disabled:text-slate-400',
+    ghost: 'bg-transparent text-mistral-black border-transparent hover:bg-warm-ivory/50 disabled:text-slate-300',
     danger: 'bg-rose-600 text-white hover:bg-rose-700 border-transparent disabled:bg-rose-300',
     success: 'bg-emerald-600 text-white hover:bg-emerald-700 border-transparent disabled:bg-emerald-300',
   };
 
   const sizes = {
-    sm: 'px-3 py-1.5 text-xs rounded-md',
-    md: 'px-4 py-2 text-sm rounded-lg',
-    lg: 'px-6 py-3 text-base rounded-xl',
-    icon: 'p-2 rounded-lg',
+    sm: 'px-3 py-1.5 text-xs rounded-none',
+    md: 'px-4 py-2 text-sm rounded-none',
+    lg: 'px-6 py-3 text-base rounded-none',
+    icon: 'p-2 rounded-none',
   };
 
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-medium transition-colors border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed shrink-0",
+        "inline-flex items-center justify-center gap-2 font-normal transition-colors border focus:outline-none focus:ring-2 focus:ring-mistral-orange focus:ring-offset-2 disabled:cursor-not-allowed shrink-0",
         variants[variant],
         sizes[size],
         className

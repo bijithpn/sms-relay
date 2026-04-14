@@ -16,7 +16,7 @@ const parseApiError = async (res: Response) => {
     return message || data.error || res.statusText;
   } catch {
     if (res.status === 500) {
-      return 'API server is not reachable. Start PostgreSQL/Redis, then start the API with: pnpm --filter @sms-relay/api dev';
+      return 'API server error. Check the API logs for details.';
     }
     return res.statusText;
   }
@@ -28,8 +28,8 @@ const requestJson = async (input: RequestInfo | URL, init?: RequestInit) => {
     if (!res.ok) throw new Error(await parseApiError(res));
     return res.json();
   } catch (error: any) {
-    if (error instanceof TypeError) {
-      throw new Error('API server is not reachable. Start it with: pnpm --filter @sms-relay/api dev');
+    if (error instanceof TypeError || error.message.includes('reachable')) {
+      throw new Error('API server is not reachable. Please start the backend with "pnpm dev" or "node scripts/easy-dev.mjs".');
     }
     throw error;
   }

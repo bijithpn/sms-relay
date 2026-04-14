@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants.dart';
+import '../../core/theme.dart';
 import '../../state/app_state.dart';
 import '../../utils/logger.dart';
 
@@ -22,11 +22,11 @@ class LogsPanel extends StatelessWidget {
               children: [
                 const Text(
                   'Real-time Logs',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: AppTheme.mistralBlack),
                 ),
                 TextButton(
                   onPressed: state.clearLogs,
-                  child: const Text('Clear'),
+                  child: const Text('Clear', style: TextStyle(color: AppTheme.mistralOrange)),
                 ),
               ],
             ),
@@ -34,8 +34,8 @@ class LogsPanel extends StatelessWidget {
             Container(
               height: 300,
               decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(8),
+                color: AppTheme.mistralBlack,
+                borderRadius: BorderRadius.zero,
               ),
               child: state.logs.isEmpty
                   ? const Center(child: Text('No logs yet', style: TextStyle(color: Colors.grey)))
@@ -62,7 +62,7 @@ class LogsPanel extends StatelessWidget {
                                   text: '${log.prefix} ',
                                   style: TextStyle(
                                     color: _getLogColor(log.type),
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                                 TextSpan(
@@ -84,10 +84,10 @@ class LogsPanel extends StatelessWidget {
 
   Color _getLogColor(LogType type) {
     switch (type) {
-      case LogType.server: return Colors.cyan;
-      case LogType.request: return Colors.purpleAccent;
-      case LogType.success: return AppConstants.activeColor;
-      case LogType.error: return AppConstants.errorColor;
+      case LogType.server: return AppTheme.sunshine700;
+      case LogType.request: return AppTheme.blockGold;
+      case LogType.success: return AppTheme.mistralOrange;
+      case LogType.error: return Colors.red;
       case LogType.info: return Colors.grey;
     }
   }

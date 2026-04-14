@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants.dart';
+import '../../core/theme.dart';
 import '../../state/app_state.dart';
 
 class TestSmsPanel extends StatefulWidget {
@@ -51,9 +51,9 @@ class _TestSmsPanelState extends State<TestSmsPanel> {
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: isError ? AppConstants.errorColor : AppConstants.activeColor,
+        backgroundColor: isError ? Colors.red : AppTheme.mistralOrange,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -69,25 +69,29 @@ class _TestSmsPanelState extends State<TestSmsPanel> {
           children: [
             const Text(
               'Quick Test Message',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.mistralBlack),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _numberController,
+              style: const TextStyle(color: AppTheme.mistralBlack),
               decoration: const InputDecoration(
                 labelText: 'Recipient Number',
+                labelStyle: TextStyle(color: Color(0xFF3C3C3C)),
                 hintText: '+91XXXXXXXXXX',
-                prefixIcon: Icon(Icons.phone_android, size: 20),
+                prefixIcon: Icon(Icons.phone_android, size: 20, color: AppTheme.mistralOrange),
               ),
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _messageController,
+              style: const TextStyle(color: AppTheme.mistralBlack),
               decoration: const InputDecoration(
                 labelText: 'Message Body',
+                labelStyle: TextStyle(color: Color(0xFF3C3C3C)),
                 hintText: 'Type your test message...',
-                prefixIcon: Icon(Icons.message_outlined, size: 20),
+                prefixIcon: Icon(Icons.message_outlined, size: 20, color: AppTheme.mistralOrange),
               ),
               maxLines: 2,
             ),
@@ -98,7 +102,7 @@ class _TestSmsPanelState extends State<TestSmsPanel> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _handleSend,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: AppTheme.mistralBlack,
                   foregroundColor: Colors.white,
                 ),
                 child: _isLoading
@@ -110,7 +114,7 @@ class _TestSmsPanelState extends State<TestSmsPanel> {
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : const Text('DISPATCH SMS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                    : const Text('DISPATCH SMS', style: TextStyle(fontWeight: FontWeight.w400, letterSpacing: 1.1)),
               ),
             ),
           ],

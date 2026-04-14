@@ -2,7 +2,8 @@ import { BadRequestException, Body, Controller, Get, Param, Patch, Post } from '
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { SMSTask } from '../entities/sms_task.entity';
-import { SMSTaskStatus } from '../entities/enums';
+import { SMSTaskStatus, DeviceStatus } from '../entities/enums';
+import { Device } from '../entities/device.entity';
 
 type CreateTaskBody = {
   recipient?: string;
@@ -20,6 +21,8 @@ export class TasksController {
   constructor(
     @InjectRepository(SMSTask)
     private tasksRepository: Repository<SMSTask>,
+    @InjectRepository(Device)
+    private devicesRepository: Repository<Device>,
   ) {}
 
   @Get('summary')
@@ -75,7 +78,7 @@ export class TasksController {
   }
 
   @Post()
-  create(@Body() task: CreateTaskBody) {
+  async create(@Body() task: CreateTaskBody) {
     const recipient = this.normalizeRecipient(task.recipient);
     const message = task.message?.trim();
 
@@ -86,13 +89,57 @@ export class TasksController {
       throw new BadRequestException('Message is required');
     }
 
+    // Find an online device to send the SMS
+    const device = await this.devicesRepository.manager.getRepository(Device).findOne({
+      where: { status: DeviceStatus.ONLINE },
+      order: { lastSeen: 'DESC' }
+    });
+
     const newTask = this.tasksRepository.create({
       recipient,
       message,
-      status: task.status || SMSTaskStatus.PENDING,
+      status: SMSTaskStatus.PENDING,
+      device: device || undefined,
     });
 
-    return this.tasksRepository.save(newTask);
+    const savedTask = await this.tasksRepository.save(newTask);
+
+    // If a device is online and has a publicUrl, try to send it immediately
+    if (device && device.publicUrl) {
+      this.sendToDevice(device, savedTask).catch(err => {
+        console.error(`Failed to push task to device: ${err.message}`);
+      });
+    }
+
+    return savedTask;
+  }
+
+  private async sendToDevice(device: Device, task: SMSTask) {
+    try {
+      const url = `${device.publicUrl.replace(/\/$/, '')}/send-sms`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer secret-api-key', // Default key for now
+        },
+        body: JSON.stringify({
+          number: task.recipient,
+          message: task.message,
+        }),
+      });
+
+      if (response.ok) {
+        await this.tasksRepository.update(task.id, { status: SMSTaskStatus.SENT });
+      } else {
+        const errorText = await response.text();
+        console.error(`Device returned error for task ${task.id}: ${errorText.slice(0, 100)}...`);
+        await this.tasksRepository.update(task.id, { status: SMSTaskStatus.FAILED });
+      }
+    } catch (e: any) {
+      console.error(`Error sending task to device ${device.id}: ${e.message}`);
+      await this.tasksRepository.update(task.id, { status: SMSTaskStatus.FAILED });
+    }
   }
 
   @Post('bulk')

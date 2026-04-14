@@ -11,10 +11,16 @@ export class Device {
   @ManyToOne(() => User, (user) => user.devices)
   user: User;
 
-  @Column()
+  @Column({ unique: true, nullable: true })
+  gatewayId: string;
+
+  @Column({ nullable: true })
+  publicUrl: string;
+
+  @Column({ nullable: true })
   phoneNumber: string;
 
-  @Column()
+  @Column({ nullable: true })
   simOperator: string;
 
   @Column({ default: 0 })

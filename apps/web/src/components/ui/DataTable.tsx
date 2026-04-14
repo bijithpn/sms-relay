@@ -31,32 +31,32 @@ export const DataTable = <T extends { id: string | number }>({
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50/50">
+            <tr className="border-b border-block-gold/30 bg-cream/50">
               {columns.map((column, i) => (
-                <th 
-                  key={i} 
-                  className={cn("px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider", column.className)}
+                <th
+                  key={i}
+                  className={cn("px-6 py-4 text-xs font-normal text-mistral-black/60 uppercase tracking-wider", column.className)}
                 >
                   {column.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-block-gold/20 bg-warm-ivory">
             {data.length > 0 ? (
               data.map((item) => (
-                <tr 
-                  key={item.id} 
+                <tr
+                  key={item.id}
                   onClick={() => onRowClick?.(item)}
-                  className={cn("hover:bg-slate-50/50 transition-colors", onRowClick && "cursor-pointer")}
+                  className={cn("hover:bg-cream/40 transition-colors", onRowClick && "cursor-pointer")}
                 >
                   {columns.map((column, i) => (
-                    <td 
-                      key={i} 
-                      className={cn("px-6 py-4 text-sm text-slate-600 whitespace-nowrap", column.className)}
+                    <td
+                      key={i}
+                      className={cn("px-6 py-4 text-sm text-mistral-black/80 whitespace-nowrap", column.className)}
                     >
-                      {typeof column.accessor === 'function' 
-                        ? column.accessor(item) 
+                      {typeof column.accessor === 'function'
+                        ? column.accessor(item)
                         : (item[column.accessor] as React.ReactNode)}
                     </td>
                   ))}
@@ -64,7 +64,7 @@ export const DataTable = <T extends { id: string | number }>({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-400">
+                <td colSpan={columns.length} className="px-6 py-12 text-center text-mistral-black/40">
                   {emptyMessage}
                 </td>
               </tr>
@@ -77,19 +77,19 @@ export const DataTable = <T extends { id: string | number }>({
       <div className="md:hidden space-y-4">
         {data.length > 0 ? (
           data.map((item) => (
-            <div 
+            <div
               key={item.id}
               onClick={() => onRowClick?.(item)}
-              className={cn("bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3", onRowClick && "active:bg-slate-50")}
+              className={cn("bg-warm-ivory p-4 rounded-none border border-block-gold/30 shadow-golden-hour space-y-3", onRowClick && "active:bg-cream/50")}
             >
               {columns.map((column, i) => (
                 <div key={i} className="flex justify-between items-start gap-4">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <span className="text-xs font-normal text-mistral-black/60 uppercase tracking-wider">
                     {column.header}
                   </span>
-                  <span className="text-sm text-slate-600 text-right">
-                    {typeof column.accessor === 'function' 
-                      ? column.accessor(item) 
+                  <span className="text-sm text-mistral-black text-right">
+                    {typeof column.accessor === 'function'
+                      ? column.accessor(item)
                       : (item[column.accessor] as React.ReactNode)}
                   </span>
                 </div>
@@ -97,7 +97,7 @@ export const DataTable = <T extends { id: string | number }>({
             </div>
           ))
         ) : (
-          <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 italic">
+          <div className="bg-warm-ivory p-8 rounded-none border border-block-gold/30 text-center text-mistral-black/40 italic">
             {emptyMessage}
           </div>
         )}

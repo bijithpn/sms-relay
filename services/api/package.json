@@ -1,5 +1,5 @@
 {
-  "name": "@sms-saas/api",
+  "name": "@sms-relay/api",
   "version": "0.0.1",
   "scripts": {
     "dev": "nest start --watch",
@@ -11,9 +11,10 @@
     "@nestjs/core": "latest",
     "@nestjs/platform-express": "latest",
     "@nestjs/typeorm": "latest",
-    "@sms-saas/config": "workspace:*",
-    "@sms-saas/types": "workspace:*",
+    "@sms-relay/config": "workspace:*",
+    "@sms-relay/types": "workspace:*",
     "bullmq": "latest",
+    "localtunnel": "^2.0.2",
     "pg": "latest",
     "socket.io": "latest",
     "typeorm": "latest",

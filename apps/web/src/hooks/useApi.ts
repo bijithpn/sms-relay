@@ -15,31 +15,34 @@ export const useTasks = () => {
   });
 };
 
+export const useTemplates = () => {
+  return useQuery({
+    queryKey: ['templates'],
+    queryFn: () => apiClient.get('/templates'),
+  });
+};
+
 export const useDashboardStats = () => {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      // In a real app, this might be a single specialized endpoint
-      // For now we could aggregate or fetch multiple
-      const [devices, tasks] = await Promise.all([
+      // Fetch devices and task summary in parallel
+      const [devices, summary] = await Promise.all([
         apiClient.get('/devices'),
-        apiClient.get('/tasks'),
+        apiClient.get('/tasks/summary'),
       ]);
       
-      const sentToday = tasks.length; // Placeholder logic
-      const delivered = tasks.filter(t => t.status === 'DELIVERED').length;
-      const failed = tasks.filter(t => t.status === 'FAILED').length;
-      const pending = tasks.filter(t => t.status === 'PENDING').length;
+      const { stats, recentTasks } = summary;
 
       return {
         metrics: [
-          { label: 'Sent Today', value: sentToday.toString(), variant: 'info' },
-          { label: 'Delivered', value: delivered.toString(), variant: 'success' },
-          { label: 'Failed', value: failed.toString(), variant: 'error' },
-          { label: 'Pending', value: pending.toString(), variant: 'warning' },
+          { label: 'Sent Today', value: stats.total.toString(), variant: 'info' },
+          { label: 'Delivered', value: stats.delivered.toString(), variant: 'success' },
+          { label: 'Failed', value: stats.failed.toString(), variant: 'error' },
+          { label: 'Pending', value: stats.pending.toString(), variant: 'warning' },
         ],
         devices,
-        recentTasks: tasks.slice(0, 5),
+        recentTasks,
       };
     },
   });

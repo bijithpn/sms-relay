@@ -1,5 +1,5 @@
-import { Device, SMSTask } from '@sms-saas/types';
-import { GLOBAL_CONFIG } from '@sms-saas/config';
+import { Device, SMSTask } from '@sms-relay/types';
+import { GLOBAL_CONFIG } from '@sms-relay/config';
 import { io, Socket } from 'socket.io-client';
 
 export class SMSNodeService {

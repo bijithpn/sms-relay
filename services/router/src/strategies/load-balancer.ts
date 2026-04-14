@@ -1,5 +1,5 @@
 import { RoutingStrategy } from './routing.interface';
-import { Device, SMSTask } from '@sms-saas/types';
+import { Device, SMSTask } from '@sms-relay/types';
 
 /**
  * LeastLoadedStrategy: Selects the device with the highest SMS quota
@@ -19,7 +19,7 @@ export class LeastLoadedStrategy implements RoutingStrategy {
 
 /**
  * GeoMatchStrategy: Prioritizes devices within the same region/operator
- * as the destination to reduce cost and increase delivery rates.
+ * as the destination to increase delivery rates.
  */
 export class GeoMatchStrategy implements RoutingStrategy {
   name = 'geo-match';

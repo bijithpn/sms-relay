@@ -1,4 +1,4 @@
-import { Device, SMSTask } from '@sms-saas/types';
+import { Device, SMSTask } from '@sms-relay/types';
 import { RoutingStrategy } from './strategies/routing.interface';
 import { LeastLoadedStrategy, GeoMatchStrategy } from './strategies/load-balancer';
 

@@ -6,7 +6,6 @@ import {
   Send, 
   Users, 
   FileText, 
-  Calculator, 
   Info,
   AlertTriangle,
   Clock,
@@ -27,8 +26,6 @@ export default function NewCampaignPage() {
   const characterCount = message.length;
   const segments = Math.ceil(characterCount / 160) || 0;
   const recipientCount = recipients.split(/[\s,]+/).filter(Boolean).length;
-
-  const estimatedCost = (recipientCount * segments * 0.01).toFixed(2);
 
   const isFormValid = message.length > 0 && recipientCount > 0;
 
@@ -114,7 +111,7 @@ export default function NewCampaignPage() {
           <Card className="sticky top-8">
             <CardHeader>
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Calculator size={20} className="text-blue-500" />
+                <FileText size={20} className="text-blue-500" />
                 Campaign Summary
               </h2>
             </CardHeader>
@@ -132,13 +129,9 @@ export default function NewCampaignPage() {
                   <span className="text-slate-500">Total SMS Units</span>
                   <span className="font-bold text-slate-900">{recipientCount * segments}</span>
                 </div>
-                <div className="pt-3 border-t border-slate-100 flex justify-between text-base font-bold">
-                  <span className="text-slate-900">Estimated Cost</span>
-                  <span className="text-blue-600">${estimatedCost}</span>
-                </div>
               </div>
 
-              <div className="space-y-3 pt-4">
+              <div className="space-y-3 pt-4 border-t border-slate-100">
                 <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
                   <Clock size={14} />
                   Est. Duration: ~{Math.ceil(recipientCount / 10)} mins

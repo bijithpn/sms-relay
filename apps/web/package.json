@@ -1,17 +1,17 @@
 {
-  "name": "@sms-saas/web",
+  "name": "@sms-relay/web",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@sms-saas/config": "workspace:*",
-    "@sms-saas/types": "workspace:*",
-    "@sms-saas/ui": "workspace:*",
+    "@sms-relay/config": "workspace:*",
+    "@sms-relay/types": "workspace:*",
+    "@sms-relay/ui": "workspace:*",
     "@tanstack/react-query": "latest",
     "clsx": "latest",
     "lucide-react": "latest",

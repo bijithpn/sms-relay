@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@sms-saas/ui';
+import { cn } from '@sms-relay/ui';
 
 interface CardProps {
   title: string;

@@ -3,9 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Device } from './entities/device.entity';
 import { SMSTask } from './entities/sms_task.entity';
+import { Template } from './entities/template.entity';
 import { AuthModule } from './auth/auth.module';
 import { DevicesModule } from './devices/devices.module';
 import { TasksModule } from './jobs/tasks.module';
+import { TemplatesModule } from './templates/templates.module';
+import { SystemController } from './system/system.controller';
+import { TunnelService } from './system/tunnel.service';
 
 @Module({
   imports: [
@@ -19,8 +23,9 @@ import { TasksModule } from './jobs/tasks.module';
     AuthModule,
     DevicesModule,
     TasksModule,
+    TemplatesModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [SystemController],
+  providers: [TunnelService],
 })
 export class AppModule {}

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { UserRole } from '@sms-saas/types';
+import { UserRole } from '@sms-relay/types';
 import { Device } from './device.entity';
 
 @Entity('users')

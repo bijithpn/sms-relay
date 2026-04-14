@@ -1,7 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
-import { SMSTask } from '@sms-saas/types';
-import { GLOBAL_CONFIG } from '@sms-saas/config';
+import { SMSTask } from '@sms-relay/types';
+import { GLOBAL_CONFIG } from '@sms-relay/config';
 
 const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,

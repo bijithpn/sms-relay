@@ -1,5 +1,5 @@
 {
-  "name": "@sms-saas/mobile",
+  "name": "@sms-relay/mobile",
   "version": "0.0.1",
   "description": "Android SMS Node App",
   "dependencies": {
@@ -7,8 +7,8 @@
     "react-native": "latest",
     "socket.io-client": "latest",
     "react-native-permissions": "latest",
-    "@sms-saas/types": "workspace:*",
-    "@sms-saas/config": "workspace:*"
+    "@sms-relay/types": "workspace:*",
+    "@sms-relay/config": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "latest",

@@ -50,7 +50,7 @@ export default function ApiReferencePage() {
             </div>
             <div className="space-y-1">
               <h2 className="text-xl font-bold">Local API Base URL</h2>
-              <p className="text-slate-400 font-mono bg-slate-800 px-3 py-1 rounded inline-block">http://localhost:3000</p>
+              <p className="text-slate-400 font-mono bg-slate-800 px-3 py-1 rounded inline-block">http://localhost:3001</p>
               <p className="text-xs text-slate-500 mt-2">All requests must be made locally. No authentication required for default local setup.</p>
             </div>
           </CardContent>
@@ -64,7 +64,7 @@ export default function ApiReferencePage() {
                   <Badge variant={api.method === 'GET' ? 'info' : 'success'}>{api.method}</Badge>
                   <code className="text-sm font-bold text-slate-700">{api.path}</code>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => copyToClipboard(`http://localhost:3000${api.path}`)}>
+                <Button variant="ghost" size="sm" onClick={() => copyToClipboard(`http://localhost:3001${api.path}`)}>
                   <Copy size={14} className="mr-2" /> Copy URL
                 </Button>
               </CardHeader>
@@ -98,7 +98,7 @@ export default function ApiReferencePage() {
               Quick Usage via CURL
             </h3>
             <pre className="bg-white p-4 rounded-xl text-xs font-mono text-blue-800 border border-blue-200 overflow-x-auto">
-{`curl -X POST http://localhost:3000/tasks \\
+{`curl -X POST http://localhost:3001/tasks \\
      -H "Content-Type: application/json" \\
      -d '{"recipient": "+919876543210", "message": "Test from API"}'`}
             </pre>

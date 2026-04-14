@@ -1,16 +1,22 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import { Device } from './device.entity';
-import { SMSTaskStatus } from '@sms-saas/types';
+import { SMSTaskStatus } from '@sms-relay/types';
 
 @Entity('sms_tasks')
 export class SMSTask {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: true })
   jobId: string;
 
-  @ManyToOne(() => Device, (device) => device.tasks)
+  @Column()
+  recipient: string;
+
+  @Column('text')
+  message: string;
+
+  @ManyToOne(() => Device, (device) => device.tasks, { nullable: true })
   device: Device;
 
   @Column({ type: 'enum', enum: SMSTaskStatus, default: SMSTaskStatus.PENDING })

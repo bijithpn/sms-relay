@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useDashboardStats } from '../../hooks/useApi';
-import { Send, CheckCircle2, XCircle, Clock, Activity, DollarSign, AlertTriangle } from 'lucide-react';
+import { Send, CheckCircle2, XCircle, Clock, Activity, AlertTriangle } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { DashboardCard } from '../../components/DashboardCard';
 import { WarningBanner } from '../../components/ui/WarningBanner';
@@ -22,7 +22,6 @@ export default function Dashboard() {
 
   const systemHealth = [
     { label: 'Active Devices', value: data?.devices?.length || '0', icon: Activity, description: 'Local nodes', variant: 'success' },
-    { label: 'Est. Cost Today', value: '$0.00', icon: DollarSign, description: 'No activity', variant: 'info' },
     { label: 'Alerts', value: '0', icon: AlertTriangle, description: 'System healthy', variant: 'success' },
   ];
 

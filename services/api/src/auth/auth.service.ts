@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
-import { UserRole } from '@sms-relay/types';
+import { UserRole } from '../entities/enums';
 
 @Injectable()
 export class AuthService {

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, InternalServerErrorException, Param, Patch, Post } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Template } from '../entities/template.entity';
@@ -29,9 +29,23 @@ export class TemplatesController {
   @Post()
   async create(@Body() templateData: Partial<Template>) {
     try {
-      const template = this.templatesRepository.create(templateData);
+      const name = templateData.name?.trim();
+      const content = templateData.content?.trim();
+      const category = templateData.category?.trim() || 'General';
+
+      if (!name) {
+        throw new BadRequestException('Template name is required');
+      }
+      if (!content) {
+        throw new BadRequestException('Template content is required');
+      }
+
+      const template = this.templatesRepository.create({ name, content, category });
       return await this.templatesRepository.save(template);
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       console.error('Create Template Error:', error);
       throw new InternalServerErrorException('Could not save template to database');
     }

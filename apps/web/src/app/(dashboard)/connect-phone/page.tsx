@@ -24,7 +24,7 @@ import { Card, CardHeader, CardContent } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import QRCode from 'react-qr-code';
-import { useTemplates } from '../../../hooks/useApi';
+import { useTemplates, useRecipients } from '../../../hooks/useApi';
 import { apiClient } from '../../../lib/api';
 
 export default function ConnectPhonePage() {
@@ -34,12 +34,15 @@ export default function ConnectPhonePage() {
   const [inputValue, setInputValue] = useState("");
   const [copied, setCopied] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
-  const [testSmsNumber, setTestSmsNumber] = useState("");
+  const [testSmsNumber, setTestSmsNumber] = useState("+91");
   const [testSmsMessage, setTestSmsMessage] = useState("Hello from SMS Relay! Your mobile node is correctly configured.");
   const [isSendingSms, setIsSendingSms] = useState(false);
+  const [testSmsError, setTestSmsError] = useState("");
   
   const { data: templates } = useTemplates();
+  const { data: recipients } = useRecipients();
 
   const tunnelInfo = {
     local: {
@@ -120,6 +123,28 @@ export default function ConnectPhonePage() {
     setTestResult(null);
   };
 
+  const handleOptimizeUrl = async () => {
+    setIsOptimizing(true);
+    setTestResult(null);
+
+    try {
+      const result = await apiClient.post('/system/tunnel/start', {
+        mode: 'local',
+        port: 3000,
+      });
+      const optimizedUrl = result.url.replace(/\/$/, '');
+      localStorage.setItem("BASE_URL", optimizedUrl);
+      setManualUrl(optimizedUrl);
+      setInputValue(optimizedUrl);
+      setTestResult('success');
+    } catch (e) {
+      console.error(e);
+      setTestResult('error');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
   const testConnection = async () => {
     setIsTesting(true);
     setTestResult(null);
@@ -138,6 +163,7 @@ export default function ConnectPhonePage() {
   const handleSendTestSms = async () => {
     if (!testSmsNumber || !testSmsMessage) return;
     setIsSendingSms(true);
+    setTestSmsError("");
     try {
       // Use apiClient which is properly configured with the proxy
       await apiClient.post('/tasks', {
@@ -145,11 +171,11 @@ export default function ConnectPhonePage() {
         message: testSmsMessage,
         status: 'PENDING'
       });
-      alert('Test SMS task created! Check your connected phone.');
+      alert('Test SMS task queued. Open /node on the phone and tap Send in the SMS composer when it appears.');
       setTestSmsNumber("");
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Failed to create test task. Is the API running?');
+      setTestSmsError(e.message || 'Failed to create test task. Start the API and try again.');
     } finally {
       setIsSendingSms(false);
     }
@@ -159,6 +185,13 @@ export default function ConnectPhonePage() {
     const template = templates?.find((t: any) => t.id === e.target.value);
     if (template) {
       setTestSmsMessage(template.content);
+    }
+  };
+
+  const handleSelectRecipient = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const recipient = recipients?.find((r: any) => r.id === e.target.value);
+    if (recipient) {
+      setTestSmsNumber(recipient.phoneNumber);
     }
   };
 
@@ -175,7 +208,7 @@ export default function ConnectPhonePage() {
     <div className="flex flex-col h-full bg-slate-50">
       <PageHeader 
         title="Connect Phone" 
-        description="Manually set your connection URL for local network or public tunnels."
+        description="Generate the phone link, scan it on Android, then keep the node page open while messages are queued."
       />
 
       <div className="px-4 md:px-8 pb-8 space-y-8">
@@ -211,11 +244,20 @@ export default function ConnectPhonePage() {
                     </Button>
                   </div>
                   <p className="text-[10px] text-slate-500">
-                    Enter your local IP (check `ipconfig`) or your public tunnel URL (Ngrok/Cloudflare).
+                    Use Optimize first. If your phone is outside this Wi-Fi network, paste an Ngrok or Cloudflare URL instead.
                   </p>
                 </div>
 
                 <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
+                  <Button
+                    size="sm"
+                    onClick={handleOptimizeUrl}
+                    disabled={isOptimizing}
+                    isLoading={isOptimizing}
+                    leftIcon={<Zap size={14} />}
+                  >
+                    Optimize Link Automatically
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleReset} leftIcon={<RotateCcw size={14} />}>
                     Reset to Default
                   </Button>
@@ -229,6 +271,12 @@ export default function ConnectPhonePage() {
                     {isTesting ? "Testing..." : testResult === 'success' ? "Connection OK" : testResult === 'error' ? "Connection Failed" : "Test Connection"}
                   </Button>
                 </div>
+                {testResult === 'error' && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                    <p>If automatic setup fails, run one of the tunnel commands below, paste the generated URL, and save it.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -293,15 +341,15 @@ export default function ConnectPhonePage() {
                 <div className="space-y-3 text-sm opacity-90">
                   <div className="flex gap-3">
                     <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0 font-bold text-[10px]">1</div>
-                    <p>Start your tunnel (e.g. <code>ngrok http 3000</code>) or find your Local IP.</p>
+                    <p>Click <strong>Optimize Link Automatically</strong> to use this computer's local network address.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0 font-bold text-[10px]">2</div>
-                    <p>Paste the URL above and click <strong>Save</strong>.</p>
+                    <p>Scan the QR code with Android Chrome and keep the node page open.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0 font-bold text-[10px]">3</div>
-                    <p>Scan the QR code with your Android phone's camera.</p>
+                    <p>Send a test SMS here. The phone will open the SMS composer for the queued task.</p>
                   </div>
                 </div>
               </CardContent>
@@ -365,7 +413,23 @@ export default function ConnectPhonePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recipient Number</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recipient Number</label>
+                    {recipients && recipients.length > 0 && (
+                      <div className="relative">
+                        <select 
+                          onChange={handleSelectRecipient}
+                          className="text-[9px] font-bold text-blue-600 bg-blue-50 border-none rounded px-2 py-1 appearance-none pr-4 cursor-pointer outline-none"
+                        >
+                          <option value="">Select Saved</option>
+                          {recipients.map((r: any) => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={8} className="absolute right-1 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none" />
+                      </div>
+                    )}
+                  </div>
                   <input 
                     type="tel" 
                     placeholder="+919876543210" 
@@ -410,6 +474,11 @@ export default function ConnectPhonePage() {
                 >
                   {isSendingSms ? "Sending..." : "Send Test SMS"}
                 </Button>
+                {testSmsError && (
+                  <div className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                    {testSmsError}
+                  </div>
+                )}
                 <p className="text-[10px] text-slate-400 italic text-center">Queues a task to your connected node.</p>
               </CardContent>
             </Card>

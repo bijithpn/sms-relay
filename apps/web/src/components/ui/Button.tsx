@@ -7,7 +7,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -37,6 +37,7 @@ export const Button = ({
     outline: 'bg-transparent text-slate-700 border-slate-200 hover:bg-slate-50 disabled:text-slate-400',
     ghost: 'bg-transparent text-slate-600 border-transparent hover:bg-slate-100 disabled:text-slate-300',
     danger: 'bg-rose-600 text-white hover:bg-rose-700 border-transparent disabled:bg-rose-300',
+    success: 'bg-emerald-600 text-white hover:bg-emerald-700 border-transparent disabled:bg-emerald-300',
   };
 
   const sizes = {

@@ -8,6 +8,9 @@
   ],
   "scripts": {
     "infra": "docker-compose up -d redis postgres",
+    "easy": "node scripts/easy-dev.mjs",
+    "stop": "node scripts/stop-dev.mjs",
+    "doctor": "node scripts/doctor.mjs",
     "build": "turbo run build",
     "dev": "pnpm infra && turbo run dev",
     "lint": "turbo run lint",

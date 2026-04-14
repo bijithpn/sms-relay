@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import { User } from './user.entity';
 import { SMSTask } from './sms_task.entity';
-import { DeviceStatus } from '@sms-relay/types';
+import { DeviceStatus } from './enums';
 
 @Entity('devices')
 export class Device {

@@ -22,6 +22,13 @@ export const useTemplates = () => {
   });
 };
 
+export const useRecipients = (search?: string) => {
+  return useQuery({
+    queryKey: ['recipients', search],
+    queryFn: () => apiClient.get(search ? `/recipients?search=${encodeURIComponent(search)}` : '/recipients'),
+  });
+};
+
 export const useDashboardStats = () => {
   return useQuery({
     queryKey: ['dashboard-stats'],

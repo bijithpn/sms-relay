@@ -1,10 +1,45 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import * as os from 'os';
 import { TunnelService } from './tunnel.service';
 
 @Controller('system')
 export class SystemController {
-  constructor(private readonly tunnelService: TunnelService) {}
+  constructor(
+    private readonly tunnelService: TunnelService,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
+  ) {}
+
+  @Get('health')
+  async getHealth() {
+    const requiredTables = ['templates', 'sms_tasks', 'devices', 'users'];
+    const rows = await this.dataSource.query(
+      `
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name = any($1)
+      `,
+      [requiredTables],
+    );
+    const existingTables = rows.map((row: { table_name: string }) => row.table_name);
+    const missingTables = requiredTables.filter((table) => !existingTables.includes(table));
+
+    return {
+      api: 'online',
+      database: this.dataSource.isInitialized ? 'connected' : 'disconnected',
+      synchronize: true,
+      tablesReady: missingTables.length === 0,
+      existingTables,
+      missingTables,
+      message:
+        missingTables.length === 0
+          ? 'API, database, and required tables are ready.'
+          : 'Database is connected, but some tables are missing. Restart the API so TypeORM synchronize can create them.',
+    };
+  }
 
   @Get('ip')
   getNetworkIp() {

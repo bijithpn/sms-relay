@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { DevicesModule } from './devices/devices.module';
 import { TasksModule } from './jobs/tasks.module';
 import { TemplatesModule } from './templates/templates.module';
+import { RecipientsModule } from './recipients/recipients.module';
 import { SystemController } from './system/system.controller';
 import { TunnelService } from './system/tunnel.service';
 
@@ -18,12 +19,15 @@ import { TunnelService } from './system/tunnel.service';
       url: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/sms_saas',
       autoLoadEntities: true,
       synchronize: true, // Set to false in production
+      retryAttempts: 10,
+      retryDelay: 3000,
     }),
     TypeOrmModule.forFeature([User, Device, SMSTask]),
     AuthModule,
     DevicesModule,
     TasksModule,
     TemplatesModule,
+    RecipientsModule,
   ],
   controllers: [SystemController],
   providers: [TunnelService],

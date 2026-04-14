@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
 import localtunnel from 'localtunnel';
+import * as os from 'os';
 
 export type ConnectionMode = 'local' | 'ngrok' | 'cloudflare';
 
@@ -17,6 +18,12 @@ export class TunnelService implements OnModuleDestroy {
     if (manualUrl) {
       this.publicUrl = manualUrl;
       this.logger.log(`Manual ${mode} URL set: ${this.publicUrl}`);
+      return this.publicUrl;
+    }
+
+    if (mode === 'local') {
+      this.publicUrl = `http://${this.getLanIp()}:${port}`;
+      this.logger.log(`Local network URL selected: ${this.publicUrl}`);
       return this.publicUrl;
     }
 
@@ -55,5 +62,19 @@ export class TunnelService implements OnModuleDestroy {
 
   onModuleDestroy() {
     this.stopTunnel();
+  }
+
+  private getLanIp() {
+    const interfaces = os.networkInterfaces();
+    for (const devName in interfaces) {
+      const iface = interfaces[devName];
+      if (!iface) continue;
+      for (const alias of iface) {
+        if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+          return alias.address;
+        }
+      }
+    }
+    return '127.0.0.1';
   }
 }

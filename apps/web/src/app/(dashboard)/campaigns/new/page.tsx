@@ -17,17 +17,43 @@ import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { WarningBanner } from '../../../../components/ui/WarningBanner';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { apiClient } from '../../../../lib/api';
 
 export default function NewCampaignPage() {
   const [message, setMessage] = useState('');
   const [recipients, setRecipients] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [confirmedAuthorized, setConfirmedAuthorized] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
 
   const characterCount = message.length;
   const segments = Math.ceil(characterCount / 160) || 0;
-  const recipientCount = recipients.split(/[\s,]+/).filter(Boolean).length;
+  const recipientList = recipients.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean);
+  const recipientCount = recipientList.length;
 
   const isFormValid = message.length > 0 && recipientCount > 0;
+
+  const startCampaign = async () => {
+    if (!isFormValid || !confirmedAuthorized) return;
+    setIsStarting(true);
+    setError('');
+
+    try {
+      await apiClient.post('/tasks/bulk', {
+        recipients: recipientList,
+        message,
+      });
+      setIsConfirming(false);
+      router.push('/campaigns');
+    } catch (e: any) {
+      setError(e.message || 'Failed to create campaign tasks. Check the API and database connection.');
+    } finally {
+      setIsStarting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -139,7 +165,11 @@ export default function NewCampaignPage() {
                 <Button 
                   className="w-full py-4 text-base font-bold shadow-lg shadow-blue-500/20"
                   disabled={!isFormValid}
-                  onClick={() => setIsConfirming(true)}
+                  onClick={() => {
+                    setConfirmedAuthorized(false);
+                    setError('');
+                    setIsConfirming(true);
+                  }}
                   rightIcon={<Send size={18} />}
                 >
                   Confirm & Send
@@ -195,12 +225,24 @@ export default function NewCampaignPage() {
                 />
                 
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <input type="checkbox" id="auth-check" className="w-4 h-4 text-blue-600 rounded" />
+                  <input
+                    type="checkbox"
+                    id="auth-check"
+                    checked={confirmedAuthorized}
+                    onChange={(event) => setConfirmedAuthorized(event.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
                   <label htmlFor="auth-check" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
                     I confirm this is authorized testing.
                   </label>
                 </div>
               </div>
+
+              {error && (
+                <div className="text-sm text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                  {error}
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <Button 
@@ -213,10 +255,9 @@ export default function NewCampaignPage() {
                 <Button 
                   variant="primary" 
                   className="flex-1"
-                  onClick={() => {
-                    alert('Campaign Started!');
-                    setIsConfirming(false);
-                  }}
+                  onClick={startCampaign}
+                  disabled={!confirmedAuthorized || isStarting}
+                  isLoading={isStarting}
                 >
                   Start Campaign
                 </Button>

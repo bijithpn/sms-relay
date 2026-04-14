@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import { Device } from './device.entity';
-import { SMSTaskStatus } from '@sms-relay/types';
+import { SMSTaskStatus } from './enums';
 
 @Entity('sms_tasks')
 export class SMSTask {

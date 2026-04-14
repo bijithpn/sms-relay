@@ -11,7 +11,8 @@ RUN pnpm run build
 FROM base AS runner
 WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/services/api/dist ./services/api/dist
+COPY --from=build /app/services/api/package.json ./services/api/package.json
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "services/api/dist/main.js"]

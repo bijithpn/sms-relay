@@ -17,6 +17,7 @@ export const NAV_ITEMS = [
   { label: 'Templates', href: '/templates', icon: FileText },
   { label: 'Recipients', href: '/recipients', icon: Users },
   { label: 'Connect Phone', href: '/connect-phone', icon: SmartphoneNfc },
+  { label: 'Mobile Node', href: '/node', icon: Activity },
   { label: 'API Reference', href: '/api-reference', icon: Code2 },
   { label: 'Alerts', href: '/alerts', icon: Bell },
   { label: 'Settings', href: '/settings', icon: Settings },

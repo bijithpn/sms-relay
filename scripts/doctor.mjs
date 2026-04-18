@@ -11,8 +11,11 @@ const pnpmCjs = isWindows && process.env.APPDATA
 const pnpmCommand = pnpmCjs && existsSync(pnpmCjs) ? process.execPath : 'pnpm';
 const pnpmArgs = pnpmCjs && existsSync(pnpmCjs) ? [pnpmCjs] : [];
 
+const quoteCmd = (cmd) => isWindows && cmd.includes(' ') && !cmd.startsWith('"') ? `"${cmd}"` : cmd;
+
 function run(command, args) {
-  const result = spawnSync(command, args, { encoding: 'utf8', shell: isWindows });
+  const finalCommand = quoteCmd(command);
+  const result = spawnSync(finalCommand, args, { encoding: 'utf8', shell: isWindows });
   return {
     ok: result.status === 0,
     output: `${result.stdout || ''}${result.stderr || ''}`.trim(),
@@ -57,11 +60,19 @@ async function main() {
   const legacyCompose = isWindows ? run('docker-compose.exe', ['version']) : run('docker-compose', ['version']);
   print(dockerCompose.ok || legacyCompose.ok, 'Docker Compose', dockerCompose.output || legacyCompose.output);
 
-  const api = await checkUrl('http://127.0.0.1:3001/system/health');
+  // Check API health - using 127.0.0.1 for explicit IPv4 as defined in main.ts app.listen(port, '0.0.0.0')
+  const api = await checkUrl('http://127.0.0.1:3001/api/system/health');
   print(api.ok, 'API health', api.ok ? api.body : api.error || `HTTP ${api.status}`);
 
   if (!api.ok) {
-    console.log('\nRun this from the repo root:');
+    console.log('\nCommon issues:');
+    if (api.error && api.error.includes('ECONNREFUSED')) {
+      console.log('- API server is not running on port 3001.');
+    } else if (api.status === 404) {
+      console.log('- API is running but the health endpoint returned 404. Check global prefix in main.ts.');
+    }
+    
+    console.log('\nRun this from the repo root to fix most issues:');
     console.log('pnpm easy');
   }
 }

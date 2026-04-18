@@ -37,7 +37,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       ),
       body: MobileScanner(
         controller: controller,
-        onDetect: (capture) {
+        onDetect: (capture) async {
           if (_isDisposed) return;
           
           final List<Barcode> barcodes = capture.barcodes;
@@ -47,12 +47,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
               _isDisposed = true; 
               
               // Stop the camera immediately to prevent buffer queue errors
-              controller.stop().then((_) {
-                if (mounted) {
-                  context.read<AppState>().handleQrResult(code);
-                  Navigator.pop(context);
-                }
-              });
+              await controller.stop();
+              if (mounted) {
+                context.read<AppState>().handleQrResult(code);
+                Navigator.pop(context);
+              }
               return;
             }
           }

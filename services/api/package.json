@@ -16,6 +16,7 @@
     "bullmq": "latest",
     "localtunnel": "^2.0.2",
     "pg": "latest",
+    "rxjs": "^7.8.2",
     "socket.io": "latest",
     "typeorm": "latest",
     "zod": "latest"

@@ -67,32 +67,40 @@ class StatusCard extends StatelessWidget {
   }
 
   Widget _buildConnectionGrid(BuildContext context, AppState state) {
+    final endpoint = '${state.localIp ?? '...Searching...'}:${state.port}';
     return Row(
       children: [
         Expanded(
           child: _buildInfoCard(
             context,
-            'Local Port',
-            state.port.toString(),
-            Icons.lan,
-            () => _showEditDialog(context, 'Update Port', state.port.toString(), (v) => state.updatePort(int.parse(v)), isNumber: true),
+            'Network Endpoint (API)',
+            endpoint,
+            Icons.wifi_tethering,
+            () {
+              if (state.localIp != null) {
+                Clipboard.setData(ClipboardData(text: 'http://$endpoint/send-sms'));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Endpoint copied to clipboard'), duration: Duration(seconds: 1)),
+                );
+              }
+            },
+            subtitle: 'Click to copy full API URL',
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
-          child: _buildInfoCard(
-            context,
-            'API Security',
-            '${state.apiKey.substring(0, 2)}***',
-            Icons.lock_outline,
-            () => _showEditDialog(context, 'Update API Key', state.apiKey, (v) => state.updateApiKey(v)),
-          ),
+        _buildInfoCard(
+          context,
+          'Port',
+          state.port.toString(),
+          Icons.lan,
+          () => _showEditDialog(context, 'Update Port', state.port.toString(), (v) => state.updatePort(int.parse(v)), isNumber: true),
+          isCompact: true,
         ),
       ],
     );
   }
 
-  Widget _buildInfoCard(BuildContext context, String label, String value, IconData icon, VoidCallback onTap) {
+  Widget _buildInfoCard(BuildContext context, String label, String value, IconData icon, VoidCallback onTap, {String? subtitle, bool isCompact = false}) {
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
@@ -102,11 +110,19 @@ class StatusCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 20, color: AppTheme.mistralOrange),
+              Row(
+                children: [
+                  Icon(icon, size: 20, color: AppTheme.mistralOrange),
+                  if (subtitle != null) ...[
+                    const SizedBox(width: 8),
+                    const Icon(Icons.copy, size: 12, color: Colors.grey),
+                  ]
+                ],
+              ),
               const SizedBox(height: 8),
               Text(label, style: const TextStyle(color: Color(0xFF3C3C3C), fontSize: 11, fontWeight: FontWeight.w400)),
               const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 14, color: AppTheme.mistralBlack)),
+              Text(value, style: TextStyle(fontWeight: FontWeight.w400, fontSize: isCompact ? 14 : 15, color: AppTheme.mistralBlack)),
             ],
           ),
         ),
@@ -127,6 +143,11 @@ class StatusCard extends StatelessWidget {
                 const Text('Backend Integration', style: TextStyle(fontWeight: FontWeight.w400, color: AppTheme.mistralBlack)),
                 Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.delete_sweep_outlined, color: Colors.grey, size: 20),
+                      onPressed: () => _showResetConfirmation(context, state),
+                      tooltip: 'Reset Settings',
+                    ),
                     IconButton(
                       icon: const Icon(Icons.qr_code_scanner, color: AppTheme.mistralOrange),
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScannerScreen())),
@@ -173,6 +194,27 @@ class StatusCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showResetConfirmation(BuildContext context, AppState state) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.warmIvory,
+        title: const Text('Reset All Settings?', style: TextStyle(color: AppTheme.mistralBlack, fontWeight: FontWeight.w400)),
+        content: const Text('This will clear all saved URLs and configurations.', style: TextStyle(color: AppTheme.mistralBlack)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: AppTheme.mistralBlack))),
+          TextButton(
+            onPressed: () {
+              state.resetSettings();
+              Navigator.pop(context);
+            },
+            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

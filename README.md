@@ -30,7 +30,33 @@ Clone the repository and install dependencies from the root:
 pnpm install
 ```
 
-### 3. Launching Infrastructure
+### 3. Easiest Local Start
+Run one command from the repo root:
+
+```bash
+pnpm easy
+```
+
+This command installs dependencies when needed, starts PostgreSQL and Redis with Docker, waits for the database, clears old dev servers from ports `3000` and `3001`, and then starts the API and web dashboard.
+
+Open:
+- **Web Dashboard**: http://localhost:3000
+- **API Health Check**: http://localhost:3001/system/health
+
+If something does not work, run:
+
+```bash
+pnpm doctor
+```
+
+If you see `EADDRINUSE` or `address already in use`, stop the old local dev servers and start again:
+
+```bash
+pnpm stop
+pnpm easy
+```
+
+### 4. Manual Infrastructure Start
 The project requires Redis (for the job queue) and PostgreSQL (for the database). Use the root `docker-compose.yml` to launch them:
 
 ```bash
@@ -40,7 +66,7 @@ docker-compose up -d redis postgres
 
 **Note:** If you see `ECONNREFUSED 127.0.0.1:6379` in your logs, it means the Redis server is not running. Ensure Docker is started and the containers are healthy.
 
-### 4. Running the Development Environment
+### 5. Running the Development Environment
 Use Turborepo to launch the API, Router, and Worker services simultaneously:
 
 ```bash
@@ -49,8 +75,8 @@ pnpm dev
 ```
 
 The services will be available at:
-- **API**: http://localhost:3000
-- **Web Dashboard**: http://localhost:3001 (or as assigned by Next.js)
+- **Web Dashboard**: http://localhost:3000 (or as assigned by Next.js)
+- **API**: http://localhost:3001
 
 ---
 

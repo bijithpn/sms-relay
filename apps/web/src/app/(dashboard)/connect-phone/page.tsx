@@ -77,13 +77,22 @@ export default function ConnectPhonePage() {
     }
   };
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount or auto-detect LAN endpoint
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem("BASE_URL");
     if (saved) {
       setManualUrl(saved);
       setInputValue(saved);
+    } else {
+      apiClient.get('/system/ip').then((data: any) => {
+        if (data?.ip) {
+          const directUrl = `http://${data.ip}:3001`;
+          localStorage.setItem("BASE_URL", directUrl);
+          setManualUrl(directUrl);
+          setInputValue(directUrl);
+        }
+      }).catch(console.error);
     }
   }, []);
 
@@ -143,7 +152,7 @@ export default function ConnectPhonePage() {
     try {
       const result = await apiClient.post('/system/tunnel/start', {
         mode: 'local',
-        port: 3000,
+        port: 3001,
       });
       const optimizedUrl = result.url.replace(/\/$/, '');
       localStorage.setItem("BASE_URL", optimizedUrl);
@@ -276,60 +285,56 @@ export default function ConnectPhonePage() {
                     size="sm" 
                     onClick={testConnection} 
                     disabled={isTesting || !baseUrl}
-                    className={testResult === 'success' ? 'text-emerald-600' : testResult === 'error' ? 'text-rose-600' : ''}
                   >
-                    {isTesting ? "Testing..." : testResult === 'success' ? "Connection OK" : testResult === 'error' ? "Connection Failed" : "Test Connection"}
+                    {isTesting ? "Testing..." : testResult === 'success' ? "Connection OK" : "Test Connection"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm uppercase tracking-wider">
                   <Smartphone size={18} className="text-emerald-500" />
-                  Active Mobile Devices
+                  Active Mobile Nodes
                 </h3>
+                <Badge variant="success" className="text-[10px]">LIVE</Badge>
               </CardHeader>
               <CardContent>
-                {isLoadingDevices && devices.length === 0 ? (
+                {isLoadingDevices ? (
                   <div className="text-center py-8">
                     <RefreshCw size={24} className="animate-spin mx-auto text-slate-300" />
-                    <p className="mt-2 text-xs text-slate-500 uppercase font-bold tracking-widest">Searching for devices...</p>
                   </div>
                 ) : devices.length === 0 ? (
-                  <div className="text-center py-8 border-2 border-dashed border-slate-100 rounded-xl">
+                  <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-2xl">
                     <Smartphone size={32} className="mx-auto text-slate-200 mb-2" />
-                    <p className="text-xs text-slate-500 font-medium">No Flutter devices connected.</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Set the Sync URL in your app to point here.</p>
+                    <p className="text-xs text-slate-500 font-medium">No active devices found.</p>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Sync your app to appear here</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {devices.map((device) => (
-                      <div key={device.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-sm hover:border-emerald-200 transition-colors">
+                      <div key={device.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
                         <div className="flex items-center gap-4">
-                          <div className={`w-3 h-3 rounded-full ${device.status === 'ONLINE' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse' : 'bg-slate-300'}`} />
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
                           <div>
-                            <p className="text-sm font-bold text-slate-900">{device.phoneNumber || 'Node '+device.id.slice(0,4)}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <Badge variant="outline" className="text-[9px] py-0">{device.simOperator || 'Generic SIM'}</Badge>
-                              <span className="text-[10px] text-slate-400 font-mono truncate max-w-[150px]">{device.publicUrl}</span>
-                            </div>
+                            <p className="text-sm font-bold text-slate-900">{device.phoneNumber || 'Mobile Node'}</p>
+                            <p className="text-[10px] text-slate-500 font-medium">
+                              {device.publicUrl ? `Endpoint: ${device.publicUrl}` : 'No public endpoint synced'}
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <Badge variant={device.status === 'ONLINE' ? 'success' : 'default'} className="text-[9px] font-bold">
-                            {device.status}
-                          </Badge>
-                          <p className="text-[9px] text-slate-400 mt-1 font-medium">Last seen: {new Date(device.lastSeen).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                          <Badge variant="success" className="text-[9px] font-bold tracking-widest uppercase">Online</Badge>
+                          <p className="text-[9px] text-slate-400 mt-1 font-medium italic">Active {new Date(device.lastSeen).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="mt-6 pt-4 border-t border-slate-100 flex justify-center">
-                  <Button variant="ghost" size="xs" onClick={fetchDevices} className="text-slate-500 font-bold uppercase tracking-widest">
-                    <RefreshCw size={12} className="mr-2" /> Refresh List
+                  <Button variant="ghost" size="sm" onClick={fetchDevices} className="text-slate-400 hover:text-blue-600 font-bold uppercase tracking-tighter">
+                    <RefreshCw size={12} className="mr-2" /> Force Refresh
                   </Button>
                 </div>
               </CardContent>
@@ -375,7 +380,23 @@ export default function ConnectPhonePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recipient</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Recipient</label>
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    onChange={(e) => {
+                      if (e.target.value) setTestSmsNumber(e.target.value);
+                    }}
+                    value={recipients?.find(r => r.phoneNumber === testSmsNumber)?.phoneNumber || ""}
+                  >
+                    <option value="">-- Manual Entry --</option>
+                    {recipients?.map((r: any) => (
+                      <option key={r.id} value={r.phoneNumber}>{r.name} ({r.phoneNumber})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone Number</label>
                   <input 
                     type="tel" 
                     placeholder="+919876543210" 
@@ -385,6 +406,21 @@ export default function ConnectPhonePage() {
                   />
                 </div>
                 
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Template</label>
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    onChange={(e) => {
+                      if (e.target.value) setTestSmsMessage(e.target.value);
+                    }}
+                  >
+                    <option value="">-- Custom Message --</option>
+                    {templates?.map((t: any) => (
+                      <option key={t.id} value={t.content}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Message</label>
                   <textarea 
@@ -400,7 +436,7 @@ export default function ConnectPhonePage() {
                   onClick={handleSendTestSms}
                   disabled={isSendingSms || !testSmsNumber}
                   leftIcon={testSmsSuccess ? <CheckCircle2 size={16} /> : <Send size={16} />}
-                  variant={testSmsSuccess ? "success" : "default"}
+                  variant={testSmsSuccess ? "success" : "primary"}
                 >
                   {isSendingSms ? "Queueing..." : testSmsSuccess ? "Sent Successfully!" : "Send via App"}
                 </Button>

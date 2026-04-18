@@ -44,17 +44,40 @@ export class SystemController {
   @Get('ip')
   getNetworkIp() {
     const interfaces = os.networkInterfaces();
+    let bestIp = '127.0.0.1';
+    
+    // priority scoring for IPs
+    const getScore = (ip: string, name: string) => {
+      let score = 0;
+      if (ip.startsWith('192.168.')) score += 100;
+      if (ip.startsWith('10.')) score += 90;
+      if (ip.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./)) score += 80;
+      
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes('wi-fi') || lowerName.includes('wifi') || lowerName.includes('wlan')) score += 50;
+      if (lowerName.includes('ethernet') || lowerName.includes('eth')) score += 40;
+      if (lowerName.includes('virtual') || lowerName.includes('vbox') || lowerName.includes('vmware') || lowerName.includes('hyper')) score -= 200;
+      if (lowerName.includes('tailscale') || lowerName.includes('zerotier')) score -= 100;
+      
+      return score;
+    };
+
+    let maxScore = -999;
+
     for (const devName in interfaces) {
       const iface = interfaces[devName];
       if (!iface) continue;
-      for (let i = 0; i < iface.length; i++) {
-        const alias = iface[i];
+      for (const alias of iface) {
         if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-          return { ip: alias.address };
+          const score = getScore(alias.address, devName);
+          if (score > maxScore) {
+            maxScore = score;
+            bestIp = alias.address;
+          }
         }
       }
     }
-    return { ip: '127.0.0.1' };
+    return { ip: bestIp };
   }
 
   @Get('tunnel')

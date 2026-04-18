@@ -1,6 +1,7 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, ParseUUIDPipe, Sse, MessageEvent, OnModuleInit, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { Observable, interval, switchMap, map, from } from 'rxjs';
 import { SMSTask } from '../entities/sms_task.entity';
 import { SMSTaskStatus, DeviceStatus } from '../entities/enums';
 import { Device } from '../entities/device.entity';
@@ -17,13 +18,64 @@ type CreateBulkTasksBody = {
 };
 
 @Controller('tasks')
-export class TasksController {
+export class TasksController implements OnModuleInit {
   constructor(
     @InjectRepository(SMSTask)
     private tasksRepository: Repository<SMSTask>,
     @InjectRepository(Device)
     private devicesRepository: Repository<Device>,
   ) {}
+
+  onModuleInit() {
+    // Start background queue processor
+    setInterval(() => this.processPendingTasks(), 5000);
+  }
+
+  private async processPendingTasks() {
+    try {
+      const pendingTasks = await this.tasksRepository.find({
+        where: { status: SMSTaskStatus.PENDING },
+        take: 10,
+        order: { createdAt: 'ASC' }
+      });
+
+      if (!pendingTasks.length) return;
+
+      const staleThreshold = new Date(Date.now() - 1 * 60 * 1000);
+      const devices = await this.devicesRepository.manager.getRepository(Device).createQueryBuilder('device')
+        .where('device.status = :status', { status: DeviceStatus.ONLINE })
+        .andWhere('device.lastSeen > :threshold', { threshold: staleThreshold })
+        .orderBy('device.lastSeen', 'DESC')
+        .getMany();
+
+      const device = devices.find(d => d.publicUrl);
+      if (!device) return; // No active device to process tasks
+
+      for (const task of pendingTasks) {
+        console.log(`[Queue] Processing pending task ${task.id} via device ${device.id}`);
+        // Assign device to task if not already assigned
+        if (!task.device) {
+          task.device = device;
+        }
+        task.retryCount = (task.retryCount || 0) + 1;
+        await this.tasksRepository.save(task);
+
+        await this.sendToDevice(device, task);
+      }
+    } catch (e) {
+      console.error('[Queue] Error processing tasks:', e);
+    }
+  }
+
+  @Sse('events')
+  streamEvents(): Observable<MessageEvent> {
+    return interval(2000).pipe(
+      switchMap(() => from(this.getSummary())),
+      map((summary) => ({
+        data: summary,
+      } as MessageEvent)),
+    );
+  }
 
   @Get('summary')
   async getSummary() {
@@ -51,11 +103,16 @@ export class TasksController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Query('status') status?: string) {
+    const where: any = {};
+    if (status) {
+      where.status = status;
+    }
     return this.tasksRepository.find({
+      where,
       relations: ['device'],
       order: { createdAt: 'DESC' },
-      take: 50
+      take: 100
     });
   }
 
@@ -70,7 +127,7 @@ export class TasksController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.tasksRepository.findOne({
       where: { id },
       relations: ['device'],
@@ -79,6 +136,15 @@ export class TasksController {
 
   @Post()
   async create(@Body() task: CreateTaskBody) {
+    return this.createTaskInternal(task);
+  }
+
+  @Post('/send-sms')
+  async sendSmsAlias(@Body() task: CreateTaskBody) {
+    return this.createTaskInternal(task);
+  }
+
+  private async createTaskInternal(task: CreateTaskBody) {
     const recipient = this.normalizeRecipient(task.recipient);
     const message = task.message?.trim();
 
@@ -89,26 +155,35 @@ export class TasksController {
       throw new BadRequestException('Message is required');
     }
 
-    // Find an online device to send the SMS
-    const device = await this.devicesRepository.manager.getRepository(Device).findOne({
-      where: { status: DeviceStatus.ONLINE },
-      order: { lastSeen: 'DESC' }
-    });
+    // Find an online device that has synced in the last 1 minute
+    const staleThreshold = new Date(Date.now() - 1 * 60 * 1000);
+    const device = await this.devicesRepository.manager.getRepository(Device).createQueryBuilder('device')
+      .where('device.status = :status', { status: DeviceStatus.ONLINE })
+      .andWhere('device.lastSeen > :threshold', { threshold: staleThreshold })
+      .orderBy('device.lastSeen', 'DESC')
+      .getOne();
+
+    if (!device) {
+      throw new BadRequestException('No active mobile nodes are currently online. Please check your Flutter app sync status.');
+    }
 
     const newTask = this.tasksRepository.create({
       recipient,
       message,
       status: SMSTaskStatus.PENDING,
-      device: device || undefined,
+      device: device,
     });
 
     const savedTask = await this.tasksRepository.save(newTask);
 
     // If a device is online and has a publicUrl, try to send it immediately
     if (device && device.publicUrl) {
+      console.log(`Pushing task ${savedTask.id} to device ${device.id} at ${device.publicUrl}`);
       this.sendToDevice(device, savedTask).catch(err => {
         console.error(`Failed to push task to device: ${err.message}`);
       });
+    } else {
+      console.warn(`Task ${savedTask.id} created but no publicUrl found for device ${device?.id}. Device status: ${device?.status}`);
     }
 
     return savedTask;
@@ -121,7 +196,7 @@ export class TasksController {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer secret-api-key', // Default key for now
+          'ngrok-skip-browser-warning': 'true',
         },
         body: JSON.stringify({
           number: task.recipient,
@@ -134,11 +209,20 @@ export class TasksController {
       } else {
         const errorText = await response.text();
         console.error(`Device returned error for task ${task.id}: ${errorText.slice(0, 100)}...`);
-        await this.tasksRepository.update(task.id, { status: SMSTaskStatus.FAILED });
+        const nextStatus = task.retryCount >= 24 ? SMSTaskStatus.FAILED : SMSTaskStatus.PENDING;
+        await this.tasksRepository.update(task.id, { status: nextStatus });
       }
     } catch (e: any) {
-      console.error(`Error sending task to device ${device.id}: ${e.message}`);
-      await this.tasksRepository.update(task.id, { status: SMSTaskStatus.FAILED });
+      // Don't clutter logs constantly for unreachable local IPs
+      const isLocal = device.publicUrl.includes('192.168') || device.publicUrl.includes('10.');
+      if (!isLocal) {
+        console.error(`Error sending task to device ${device.id}: ${e.message}`);
+      }
+      
+      // Allow up to 24 retries (approx 2 minutes of queue processing at 5s intervals)
+      // This gives devices sitting behind NAT time to poll for the pending tasks.
+      const nextStatus = task.retryCount >= 24 ? SMSTaskStatus.FAILED : SMSTaskStatus.PENDING;
+      await this.tasksRepository.update(task.id, { status: nextStatus });
     }
   }
 
@@ -182,7 +266,7 @@ export class TasksController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() update: Partial<Pick<SMSTask, 'status' | 'retryCount' | 'jobId'>>) {
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() update: Partial<Pick<SMSTask, 'status' | 'retryCount' | 'jobId'>>) {
     const allowedStatuses = Object.values(SMSTaskStatus);
     if (update.status && !allowedStatuses.includes(update.status)) {
       throw new BadRequestException('Invalid task status');

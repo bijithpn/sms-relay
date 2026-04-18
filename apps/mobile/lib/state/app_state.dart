@@ -15,32 +15,105 @@ class AppState extends ChangeNotifier {
   List<LogEntry> _logs = [];
   Map<Permission, PermissionStatus> _permissions = {};
   bool _isSyncing = false;
-  
+  String? _localIp;
+  Timer? _ipTimer;
+  Timer? _syncTimer;
+  Timer? _tasksTimer;
+
   AppState() {
     _serverService = ServerService(_smsService, 
-      apiKey: StorageService.apiKey, 
       port: StorageService.port
     );
-    
+
     _listenToLogs();
     _checkPermissions();
-    
+    _refreshIp();
+
     // Auto-sync on startup if enabled
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (autoSync) syncWithBackend();
     });
+
+    _ipTimer = Timer.periodic(const Duration(seconds: 30), (_) => _refreshIp());
+    _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (autoSync) syncWithBackend(silent: true);
+    });
+    _tasksTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (autoSync && _serverService.isRunning) _pollPendingTasks();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ipTimer?.cancel();
+    _syncTimer?.cancel();
+    _tasksTimer?.cancel();
+    syncOffline();
+    super.dispose();
+  }
+
+  Future<void> syncOffline() async {
+    if (syncUrl.isEmpty) return;
+    try {
+      await http.post(
+        Uri.parse(syncUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'gateway_id': 'flutter_sms_gateway',
+          'status': 'offline',
+          'timestamp': DateTime.now().toIso8601String(),
+        }),
+      );
+    } catch (_) {}
   }
 
   // Getters
   List<LogEntry> get logs => _logs;
   bool get isServerRunning => _serverService.isRunning;
   int get port => _serverService.port;
-  String get apiKey => _serverService.apiKey;
+  String? get localIp => _localIp;
   String get publicUrl => StorageService.tunnelUrl;
   String get syncUrl => StorageService.syncUrl;
   bool get autoSync => StorageService.autoSync;
   bool get isSyncing => _isSyncing;
   Map<Permission, PermissionStatus> get permissions => _permissions;
+
+  Future<void> _refreshIp() async {
+    final ip = await _serverService.getLocalIp();
+    if (_localIp != ip) {
+      _localIp = ip;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _pollPendingTasks() async {
+    if (syncUrl.isEmpty) return;
+    try {
+      final apiUrl = syncUrl.replaceAll('/devices/sync', '');
+      final response = await http.get(Uri.parse('$apiUrl/tasks/pending')).timeout(const Duration(seconds: 3));
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> tasks = json.decode(response.body);
+        if (tasks.isEmpty) return;
+        
+        List<String> sentIds = [];
+        for (final task in tasks) {
+           await _smsService.sendSms(task['recipient'], task['message']);
+           sentIds.add(task['id']);
+        }
+        
+        if (sentIds.isNotEmpty) {
+           await http.patch(
+             Uri.parse('$apiUrl/tasks/pending/mark-sent'),
+             headers: {'Content-Type': 'application/json'},
+             body: json.encode({'ids': sentIds})
+           );
+        }
+      }
+    } catch (_) {
+      // Ignore polling errors completely
+    }
+  }
 
   void _listenToLogs() {
     AppLogger.logs.listen((entry) {
@@ -69,14 +142,30 @@ class AppState extends ChangeNotifier {
     try {
       final data = json.decode(code);
       if (data['syncUrl'] != null) updateSyncUrl(data['syncUrl']);
-      if (data['apiKey'] != null) updateApiKey(data['apiKey']);
       if (data['port'] != null) updatePort(int.parse(data['port'].toString()));
       AppLogger.success('Configuration updated via QR code');
+      
+      // Auto connect and start server
+      syncWithBackend().then((success) async {
+        if (success && !_serverService.isRunning) {
+          await _serverService.start();
+          AppLogger.success('Server auto-started after connection established');
+          await syncWithBackend(); // Sync online status
+          notifyListeners();
+        }
+      });
     } catch (e) {
-      // If not JSON, check if it's just a URL
       if (code.startsWith('http')) {
         updateSyncUrl(code);
         AppLogger.success('Sync URL updated via QR code');
+        syncWithBackend().then((success) async {
+          if (success && !_serverService.isRunning) {
+            await _serverService.start();
+            AppLogger.success('Server auto-started after connection established');
+            await syncWithBackend();
+            notifyListeners();
+          }
+        });
       } else {
         AppLogger.error('Invalid QR code format');
       }
@@ -88,21 +177,31 @@ class AppState extends ChangeNotifier {
       if (_serverService.isRunning) {
         await _serverService.stop();
         AppLogger.info('Server stopped manually');
+        if (syncUrl.isNotEmpty) await syncWithBackend();
       } else {
+        if (syncUrl.isNotEmpty) {
+          AppLogger.info('Verifying backend connection...');
+          final success = await syncWithBackend();
+          if (!success) {
+            AppLogger.error('Cannot start server: failed to connect to backend.');
+            return;
+          }
+        }
         await _serverService.start();
         AppLogger.success('Server started successfully');
-        if (autoSync) await syncWithBackend();
+        if (syncUrl.isNotEmpty) await syncWithBackend();
       }
+      
       notifyListeners();
     } catch (e) {
       AppLogger.error('Server action failed: $e');
     }
   }
 
-  Future<void> syncWithBackend() async {
+  Future<bool> syncWithBackend({bool silent = false}) async {
     if (syncUrl.isEmpty) {
-      AppLogger.info('Backend Sync URL not set. Skipping sync.');
-      return;
+      if (!silent) AppLogger.info('Backend Sync URL not set. Skipping sync.');
+      return false;
     }
 
     _isSyncing = true;
@@ -110,25 +209,46 @@ class AppState extends ChangeNotifier {
 
     try {
       AppLogger.info('Syncing status with backend: $syncUrl');
+      
+      String effectivePublicUrl = publicUrl;
+      if (effectivePublicUrl.isEmpty && _localIp != null) {
+        effectivePublicUrl = 'http://$_localIp:$port';
+      }
+      
       final response = await http.post(
         Uri.parse(syncUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'gateway_id': 'flutter_sms_gateway',
-          'public_url': publicUrl,
+          'public_url': effectivePublicUrl,
           'local_port': port,
           'status': isServerRunning ? 'online' : 'offline',
+          'phone_number': 'Mobile Node', 
+          'sim_operator': 'Flutter Gateway',
           'timestamp': DateTime.now().toIso8601String(),
         }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        AppLogger.success('Successfully synced with backend');
+        if (!silent) AppLogger.success('Successfully synced with backend');
+        
+        // Handle automatic updates from backend
+        try {
+          final data = json.decode(response.body);
+          if (data['port'] != null) updatePort(int.parse(data['port'].toString()));
+          if (data['public_url'] != null) updatePublicUrl(data['public_url']);
+          if (data['auto_sync'] != null) toggleAutoSync(data['auto_sync'] == true);
+        } catch (e) {
+          // Response might not be JSON or might not contain settings, ignore
+        }
+        return true;
       } else {
         AppLogger.error('Backend sync failed: ${response.statusCode}');
+        return false;
       }
     } catch (e) {
       AppLogger.error('Error during backend sync: $e');
+      return false;
     } finally {
       _isSyncing = false;
       notifyListeners();
@@ -138,12 +258,6 @@ class AppState extends ChangeNotifier {
   void updatePort(int port) {
     StorageService.port = port;
     _serverService.updateSettings(port: port);
-    notifyListeners();
-  }
-
-  void updateApiKey(String key) {
-    StorageService.apiKey = key;
-    _serverService.updateSettings(apiKey: key);
     notifyListeners();
   }
   
@@ -177,6 +291,14 @@ class AppState extends ChangeNotifier {
 
   void clearLogs() {
     _logs = [];
+    notifyListeners();
+  }
+
+  Future<void> resetSettings() async {
+    await StorageService.clearAll();
+    _serverService.updateSettings(
+      port: StorageService.port,
+    );
     notifyListeners();
   }
 }

@@ -9,19 +9,30 @@ import '../utils/logger.dart';
 class ServerService {
   final SmsService _smsService;
   HttpServer? _server;
-  String _apiKey;
   int _port;
 
-  ServerService(this._smsService, {String? apiKey, int? port})
-      : _apiKey = apiKey ?? 'secret-api-key',
-        _port = port ?? 8080;
+  ServerService(this._smsService, {int? port})
+      : _port = port ?? 8080;
 
   bool get isRunning => _server != null;
   int get port => _port;
-  String get apiKey => _apiKey;
 
-  void updateSettings({String? apiKey, int? port}) {
-    if (apiKey != null) _apiKey = apiKey;
+  Future<String?> getLocalIp() async {
+    try {
+      final interfaces = await NetworkInterface.list(
+        includeLoopback: false,
+        type: InternetAddressType.IPv4,
+      );
+      if (interfaces.isNotEmpty) {
+        return interfaces.first.addresses.first.address;
+      }
+    } catch (e) {
+      AppLogger.error('Failed to get local IP: $e');
+    }
+    return null;
+  }
+
+  void updateSettings({int? port}) {
     if (port != null) _port = port;
   }
 
@@ -50,7 +61,7 @@ class ServerService {
         final id = await _smsService.sendSms(number, message);
         
         return Response.ok(
-          json.encode({'status': 'sent', 'id': id}),
+          json.encode({'status': 'sent', 'id': id, 'message': 'SMS queued successfully'}),
           headers: {'content-type': 'application/json'},
         );
       } catch (e) {
@@ -62,27 +73,13 @@ class ServerService {
       }
     });
 
-    // Endpoint to update settings remotely
-    router.post('/settings', (Request request) async {
-      AppLogger.request('POST /settings from ${request.context['shelf.io.connection_info']}');
-      try {
-        final payload = await request.readAsString();
-        final body = json.decode(payload);
-        
-        // We return the body so the AppState can handle the persistence and logic
-        return Response.ok(
-          json.encode({'status': 'received', 'updated': body}),
-          headers: {'content-type': 'application/json'},
-        );
-      } catch (e) {
-        return Response.internalServerError(body: json.encode({'error': e.toString()}));
-      }
+    router.get('/', (Request request) {
+      return Response.ok('Service Online', headers: {'content-type': 'text/plain'});
     });
 
     final handler = Pipeline()
         .addMiddleware(logRequests())
         .addMiddleware(_corsMiddleware()) // Enable CORS for Web Browsers
-        .addMiddleware(_authMiddleware(_apiKey))
         .addHandler((Request request) {
       if (request.method == 'OPTIONS') {
         return Response.ok('', headers: _corsHeaders());
@@ -122,22 +119,6 @@ class ServerService {
         }
         final response = await innerHandler(request);
         return response.change(headers: _corsHeaders());
-      };
-    };
-  }
-
-  Middleware _authMiddleware(String validKey) {
-    return (innerHandler) {
-      return (request) async {
-        final authHeader = request.headers['Authorization'];
-        if (authHeader == null || !authHeader.startsWith('Bearer ') || authHeader.substring(7) != validKey) {
-          AppLogger.error('Unauthorized request: ${request.requestedUri}');
-          return Response.forbidden(
-            json.encode({'error': 'Unauthorized'}),
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        return innerHandler(request);
       };
     };
   }

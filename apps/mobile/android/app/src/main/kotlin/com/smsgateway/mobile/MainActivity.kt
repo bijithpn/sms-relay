@@ -102,6 +102,21 @@ class MainActivity : FlutterActivity() {
             registerReceiver(deliveredReceiver, IntentFilter(DELIVERED_ACTION))
         }
 
-        smsManager.sendTextMessage(number, null, message, sentIntent, deliveredIntent)
+        try {
+            val parts = smsManager.divideMessage(message)
+            if (parts.size > 1) {
+                val sentIntents = ArrayList<PendingIntent>()
+                val deliveredIntents = ArrayList<PendingIntent>()
+                for (i in parts.indices) {
+                    sentIntents.add(sentIntent)
+                    deliveredIntents.add(deliveredIntent)
+                }
+                smsManager.sendMultipartTextMessage(number, null, parts, sentIntents, deliveredIntents)
+            } else {
+                smsManager.sendTextMessage(number, null, message, sentIntent, deliveredIntent)
+            }
+        } catch (e: Exception) {
+            eventSink?.success(mapOf("id" to id, "status" to "failed_to_send", "type" to "sent_report"))
+        }
     }
 }

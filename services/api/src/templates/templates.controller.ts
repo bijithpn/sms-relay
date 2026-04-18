@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, InternalServerErrorException, Param, Patch, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, InternalServerErrorException, Param, Patch, Post, ParseUUIDPipe } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Template } from '../entities/template.entity';
@@ -22,7 +22,7 @@ export class TemplatesController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return await this.templatesRepository.findOneBy({ id });
   }
 
@@ -52,7 +52,7 @@ export class TemplatesController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateData: Partial<Template>) {
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() updateData: Partial<Template>) {
     try {
       await this.templatesRepository.update(id, updateData);
       return await this.templatesRepository.findOneBy({ id });
@@ -63,7 +63,7 @@ export class TemplatesController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id', new ParseUUIDPipe()) id: string) {
     try {
       const result = await this.templatesRepository.delete(id);
       return { deleted: result.affected > 0 };

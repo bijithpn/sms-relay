@@ -13,7 +13,6 @@ class GatewayQrDialog extends StatelessWidget {
     
     final qrData = json.encode({
       'url': state.publicUrl.isNotEmpty ? state.publicUrl : 'http://local:${state.port}',
-      'apiKey': state.apiKey,
       'port': state.port,
     });
 

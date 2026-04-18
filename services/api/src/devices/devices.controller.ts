@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, BadRequestException, ParseUUIDPipe } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from '../entities/device.entity';
@@ -12,14 +12,43 @@ export class DevicesController {
   ) {}
 
   @Get()
-  findAll() {
-    return this.devicesRepository.find({
+  async findAll() {
+    // Only return devices that are ONLINE and have been seen recently (last 1 min)
+    const now = new Date();
+    const activeThreshold = 1 * 60 * 1000;
+    
+    const devices = await this.devicesRepository.find({
+      where: { status: DeviceStatus.ONLINE },
       order: { lastSeen: 'DESC' }
     });
+
+    // Filter out truly stale ones before returning
+    return devices.filter(device => (now.getTime() - new Date(device.lastSeen).getTime()) < activeThreshold);
   }
 
   @Post('sync')
   async sync(@Body() body: { 
+    gateway_id: string; 
+    public_url?: string; 
+    status?: string;
+    phone_number?: string;
+    sim_operator?: string;
+  }) {
+    return this.syncInternal(body);
+  }
+
+  @Post('/register-device')
+  async registerDevice(@Body() body: { 
+    gateway_id: string; 
+    public_url?: string; 
+    status?: string;
+    phone_number?: string;
+    sim_operator?: string;
+  }) {
+    return this.syncInternal(body);
+  }
+
+  private async syncInternal(body: { 
     gateway_id: string; 
     public_url?: string; 
     status?: string;
@@ -49,7 +78,7 @@ export class DevicesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.devicesRepository.findOneBy({ id });
   }
 
@@ -60,12 +89,12 @@ export class DevicesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() update: Partial<Device>) {
+  update(@Param('id', new ParseUUIDPipe()) id: string, @Body() update: Partial<Device>) {
     return this.devicesRepository.update(id, update);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.devicesRepository.delete(id);
   }
 }

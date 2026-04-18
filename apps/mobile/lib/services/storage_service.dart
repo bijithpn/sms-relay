@@ -13,8 +13,9 @@ class StorageService {
 
   static Box get settingsBox => Hive.box(settingsBoxName);
 
-  static String get apiKey => settingsBox.get('apiKey', defaultValue: AppConstants.defaultApiKey);
-  static set apiKey(String value) => settingsBox.put('apiKey', value);
+  static Future<void> clearAll() async {
+    await settingsBox.clear();
+  }
 
   static int get port => settingsBox.get('port', defaultValue: int.parse(AppConstants.defaultPort));
   static set port(int value) => settingsBox.put('port', value);

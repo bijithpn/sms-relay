@@ -4,7 +4,7 @@ const getApiBaseUrl = () => {
     return '/api';
   }
   // Server-side or build-time
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 };
 
 const API_BASE_URL = getApiBaseUrl();

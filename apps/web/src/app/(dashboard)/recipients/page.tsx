@@ -115,7 +115,6 @@ export default function RecipientsPage() {
               <CardContent className="p-0">
                 <DataTable 
                   data={recipients || []}
-                  isLoading={isLoading}
                   emptyMessage="No recipients found. Add one to get started."
                   columns={[
                     { 

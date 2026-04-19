@@ -1,5 +1,5 @@
-import React from 'react';
-import { cn } from '@sms-relay/ui';
+import React from "react";
+import { cn } from "@sms-relay/ui";
 
 interface CardProps {
   title: string;
@@ -9,7 +9,13 @@ interface CardProps {
   className?: string;
 }
 
-export const StatCard = ({ title, value, description, icon, className }: CardProps) => (
+export const StatCard = ({
+  title,
+  value,
+  description,
+  icon,
+  className,
+}: CardProps) => (
   <div className={cn("p-6 bg-white rounded-xl border shadow-sm", className)}>
     <div className="flex items-center justify-between mb-4">
       <span className="text-sm font-medium text-gray-500">{title}</span>

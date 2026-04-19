@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Menu } from 'lucide-react';
-import { useUIStore } from '../store/useUIStore';
+import React from "react";
+import { Menu } from "lucide-react";
+import { useUIStore } from "../store/useUIStore";
 
 interface PageHeaderProps {
   title: string;
@@ -10,7 +10,11 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
 }
 
-export const PageHeader = ({ title, description, actions }: PageHeaderProps) => {
+export const PageHeader = ({
+  title,
+  description,
+  actions,
+}: PageHeaderProps) => {
   const { toggleMobileNav } = useUIStore();
 
   return (
@@ -23,15 +27,17 @@ export const PageHeader = ({ title, description, actions }: PageHeaderProps) => 
           <Menu size={24} />
         </button>
         <div className="flex flex-col">
-          <h1 className="text-display-hero font-normal text-mistral-black tracking-billboard">{title}</h1>
-          {description && <p className="text-mistral-black/70 text-subheading mt-2 font-normal">{description}</p>}
+          <h1 className="text-display-hero font-normal text-mistral-black tracking-billboard">
+            {title}
+          </h1>
+          {description && (
+            <p className="text-mistral-black/70 text-subheading mt-2 font-normal">
+              {description}
+            </p>
+          )}
         </div>
       </div>
-      {actions && (
-        <div className="flex items-center gap-3">
-          {actions}
-        </div>
-      )}
+      {actions && <div className="flex items-center gap-3">{actions}</div>}
     </div>
   );
 };

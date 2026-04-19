@@ -1,31 +1,34 @@
-import { Queue, Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
-import { SMSTask } from '@sms-relay/types';
-import { GLOBAL_CONFIG } from '@sms-relay/config';
+import { Queue, Worker, Job } from "bullmq";
+import IORedis from "ioredis";
+import { SMSTask } from "@sms-relay/types";
+import { GLOBAL_CONFIG } from "@sms-relay/config";
 
-const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-  retryStrategy(times) {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
+const connection = new IORedis(
+  process.env.REDIS_URL || "redis://localhost:6379",
+  {
+    maxRetriesPerRequest: null,
+    retryStrategy(times) {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    },
   },
-});
+);
 
-connection.on('error', (err: any) => {
-  if (err.code === 'ECONNREFUSED') {
-    console.error('❌ Redis Connection Refused at', err.address, ':', err.port);
-    console.error('👉 Ensure Redis is running: `docker-compose up -d redis`');
+connection.on("error", (err: any) => {
+  if (err.code === "ECONNREFUSED") {
+    console.error("❌ Redis Connection Refused at", err.address, ":", err.port);
+    console.error("👉 Ensure Redis is running: `docker-compose up -d redis`");
   }
 });
 
-connection.on('connect', () => {
-  console.log('✅ Worker connected to Redis');
+connection.on("connect", () => {
+  console.log("✅ Worker connected to Redis");
 });
 
-export const smsQueue = new Queue('sms-tasks', { connection });
+export const smsQueue = new Queue("sms-tasks", { connection });
 
 export const smsWorker = new Worker(
-  'sms-tasks',
+  "sms-tasks",
   async (job) => {
     const task = job.data as SMSTask;
     console.log(`Processing SMS Task: ${job.id}`);
@@ -34,18 +37,18 @@ export const smsWorker = new Worker(
       // BullMQ Job attempts are available on the job object
       const attempts = (job as any).attempts;
       if (attempts && attempts >= GLOBAL_CONFIG.RETRY_LIMIT) {
-        throw new Error('Max retries reached');
+        throw new Error("Max retries reached");
       }
 
       await dispatchToDevice(task);
 
-      return { status: 'DISPATCHED', taskId: task.id };
+      return { status: "DISPATCHED", taskId: task.id };
     } catch (error: any) {
       console.error(`Task ${task?.id} failed: ${error.message}`);
       throw error;
     }
   },
-  { connection }
+  { connection },
 );
 
 async function dispatchToDevice(task: SMSTask) {

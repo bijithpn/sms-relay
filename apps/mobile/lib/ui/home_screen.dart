@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/constants.dart';
@@ -17,23 +18,46 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  StreamSubscription? _logSubscription;
+  String? _lastToastMessage;
+  DateTime? _lastToastTime;
+
   @override
   void initState() {
     super.initState();
-    // Listen to logs to show toasts
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      AppLogger.logs.listen((entry) {
-        if (entry.type == LogType.success || entry.type == LogType.error) {
-          _showToast(entry);
+    // Listen to logs to show toasts with deduplication
+    _logSubscription = AppLogger.logs.listen((entry) {
+      if (!mounted) return;
+      
+      if (entry.type == LogType.success || entry.type == LogType.error) {
+        final now = DateTime.now();
+        // Prevent showing the exact same message within 2 seconds
+        if (_lastToastMessage == entry.message && 
+            _lastToastTime != null && 
+            now.difference(_lastToastTime!).inSeconds < 2) {
+          return;
         }
-      });
+        
+        _lastToastMessage = entry.message;
+        _lastToastTime = now;
+        _showToast(entry);
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _logSubscription?.cancel();
+    super.dispose();
   }
 
   void _showToast(LogEntry entry) {
     if (!mounted) return;
 
     final isError = entry.type == LogType.error;
+    
+    // Clear any existing snacks before showing a new one to avoid queuing
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

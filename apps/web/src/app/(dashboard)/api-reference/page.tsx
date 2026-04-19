@@ -1,109 +1,154 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Code2, Copy, Terminal, CheckCircle2 } from 'lucide-react';
-import { PageHeader } from '../../../components/PageHeader';
-import { Card, CardHeader, CardContent } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
-import { Badge } from '../../../components/ui/Badge';
+import React from "react";
+import dynamic from "next/dynamic";
+import { PageHeader } from "../../../components/PageHeader";
+import "swagger-ui-react/swagger-ui.css";
 
-const API_ENDPOINTS = [
-  {
-    method: 'GET',
-    path: '/devices',
-    description: 'Fetch all connected mobile nodes/SIMs.',
-    response: '[{ "id": "uuid", "phoneNumber": "+91...", "status": "ONLINE" }]'
-  },
-  {
-    method: 'POST',
-    path: '/tasks',
-    description: 'Send a single SMS task to the queue.',
-    payload: '{ "recipient": "+91...", "message": "Hello World" }',
-    response: '{ "id": "uuid", "status": "PENDING" }'
-  },
-  {
-    method: 'GET',
-    path: '/tasks',
-    description: 'Fetch history of all SMS tasks.',
-    response: '[{ "id": "uuid", "status": "DELIVERED", "createdAt": "..." }]'
-  },
-];
+// Swagger UI doesn't support SSR easily
+const SwaggerUI = dynamic(() => import("swagger-ui-react"), {
+  ssr: false,
+  loading: () => (
+    <div className="p-12 text-center text-mistral-black/40 animate-pulse font-bold tracking-widest uppercase text-xs">
+      Loading API Documentation...
+    </div>
+  ),
+}) as any;
 
 export default function ApiReferencePage() {
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard');
-  };
+  const [spec, setSpec] = React.useState<any>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    // Suppress Swagger UI lifecycle warnings in React 19 Strict Mode
+    const originalError = console.error;
+    console.error = (...args) => {
+      if (
+        args[0]?.includes?.("UNSAFE_componentWillReceiveProps") &&
+        args[0]?.includes?.("ModelCollapse")
+      ) {
+        return;
+      }
+      originalError.apply(console, args);
+    };
+
+    fetch("http://localhost:3001/api/docs-json")
+      .then((res) => {
+        if (!res.ok) throw new Error("API is not reachable");
+        return res.json();
+      })
+      .then((data) => setSpec(data))
+      .catch((err) => {
+        console.error("Failed to fetch swagger spec:", err);
+        setError(
+          "Could not connect to the API. Make sure the backend is running at http://localhost:3001",
+        );
+      });
+
+    return () => {
+      console.error = originalError;
+    };
+  }, []);
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
-      <PageHeader 
-        title="API Reference" 
-        description="Integrate SMS Relay into your local scripts and applications."
+    <div className="flex flex-col min-h-full bg-warm-ivory">
+      <PageHeader
+        title="API Reference"
+        description="Interactive OpenAPI documentation. Test the SMS and OTP endpoints directly from this interface."
       />
 
-      <div className="px-4 md:px-8 pb-8 space-y-8">
-        <Card className="bg-slate-900 text-white border-none shadow-xl">
-          <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0">
-              <Terminal size={32} />
+      <div className="flex-1 px-4 md:px-8 pb-12">
+        <div className="bg-white rounded-none border border-block-gold overflow-hidden shadow-sm min-h-[600px]">
+          {error ? (
+            <div className="p-20 text-center space-y-4">
+              <div className="text-mistral-orange font-bold text-xl uppercase tracking-tighter italic">
+                Offline
+              </div>
+              <p className="text-mistral-black/70 max-w-md mx-auto text-sm">
+                {error}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-mistral-orange text-white text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-mistral-flame transition-all active:scale-95"
+              >
+                Reconnect to API
+              </button>
             </div>
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold">Local API Base URL</h2>
-              <p className="text-slate-400 font-mono bg-slate-800 px-3 py-1 rounded inline-block">http://localhost:3001</p>
-              <p className="text-xs text-slate-500 mt-2">All requests must be made locally. No authentication required for default local setup.</p>
+          ) : (
+            <div className="swagger-ui-custom-theme">
+              <style jsx global>{`
+                .swagger-ui .topbar {
+                  display: none !important;
+                }
+                .swagger-ui .info {
+                  padding: 40px 30px;
+                }
+                .swagger-ui .info .title {
+                  color: #1f1f1f !important;
+                  font-family: inherit;
+                  font-weight: 900;
+                  text-transform: uppercase;
+                  letter-spacing: -0.05em;
+                }
+                .swagger-ui .scheme-container {
+                  display: none !important;
+                }
+                .swagger-ui .opblock-tag {
+                  font-family: inherit;
+                  color: #1f1f1f;
+                  border-bottom: 2px solid #ffe295;
+                  padding: 10px 0;
+                }
+                .swagger-ui .btn.execute {
+                  background-color: #fa520f !important;
+                  border-color: #fa520f !important;
+                  border-radius: 0;
+                  color: white !important;
+                  font-weight: bold;
+                  text-transform: uppercase;
+                }
+                .swagger-ui .btn.authorize {
+                  color: #fa520f !important;
+                  border-color: #fa520f !important;
+                  border-radius: 0;
+                  font-weight: bold;
+                }
+                .swagger-ui .btn.authorize svg {
+                  fill: #fa520f !important;
+                }
+                .swagger-ui .opblock {
+                  border-radius: 0 !important;
+                  box-shadow: none !important;
+                  border: 1px solid #ffe295 !important;
+                }
+                .swagger-ui .opblock.opblock-post {
+                  background: #fffaf0;
+                }
+                .swagger-ui .opblock.opblock-get {
+                  background: #f0f7ff;
+                  border-color: #b8daff !important;
+                }
+                .swagger-ui input,
+                .swagger-ui select,
+                .swagger-ui textarea {
+                  border-radius: 0 !important;
+                  border: 1px solid #ffe295 !important;
+                  padding: 8px !important;
+                }
+                .swagger-ui .model-box-control:focus,
+                .swagger-ui .models-control:focus,
+                .swagger-ui .opblock-summary-control:focus {
+                  outline: none !important;
+                }
+                .swagger-ui .model-container {
+                  background: #fffdf7 !important;
+                  border: 1px solid #ffe295 !important;
+                }
+              `}</style>
+              {spec && <SwaggerUI spec={spec} />}
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 gap-6">
-          {API_ENDPOINTS.map((api, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <Badge variant={api.method === 'GET' ? 'info' : 'success'}>{api.method}</Badge>
-                  <code className="text-sm font-bold text-slate-700">{api.path}</code>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => copyToClipboard(`http://localhost:3001${api.path}`)}>
-                  <Copy size={14} className="mr-2" /> Copy URL
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-slate-600">{api.description}</p>
-                
-                {api.payload && (
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Request Payload</h4>
-                    <pre className="bg-slate-50 p-3 rounded-lg text-xs font-mono text-slate-700 border border-slate-100 overflow-x-auto">
-                      {api.payload}
-                    </pre>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Example Response</h4>
-                  <pre className="bg-slate-50 p-3 rounded-lg text-xs font-mono text-slate-700 border border-slate-100 overflow-x-auto">
-                    {api.response}
-                  </pre>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          )}
         </div>
-
-        <Card className="bg-blue-50 border-blue-100">
-          <CardContent className="p-6 space-y-4">
-            <h3 className="text-blue-900 font-bold flex items-center gap-2">
-              <CheckCircle2 size={20} />
-              Quick Usage via CURL
-            </h3>
-            <pre className="bg-white p-4 rounded-xl text-xs font-mono text-blue-800 border border-blue-200 overflow-x-auto">
-{`curl -X POST http://localhost:3001/tasks \\
-     -H "Content-Type: application/json" \\
-     -d '{"recipient": "+919876543210", "message": "Test from API"}'`}
-            </pre>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

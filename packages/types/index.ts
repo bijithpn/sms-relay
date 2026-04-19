@@ -1,6 +1,6 @@
 export enum UserRole {
-  ADMIN = 'ADMIN',
-  USER = 'USER',
+  ADMIN = "ADMIN",
+  USER = "USER",
 }
 
 export interface User {
@@ -12,9 +12,9 @@ export interface User {
 }
 
 export enum DeviceStatus {
-  ONLINE = 'ONLINE',
-  OFFLINE = 'OFFLINE',
-  BUSY = 'BUSY',
+  ONLINE = "ONLINE",
+  OFFLINE = "OFFLINE",
+  BUSY = "BUSY",
 }
 
 export interface Device {
@@ -28,10 +28,10 @@ export interface Device {
 }
 
 export enum SMSJobStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
+  PENDING = "PENDING",
+  PROCESSING = "PROCESSING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
 }
 
 export interface SMSJob {
@@ -44,10 +44,10 @@ export interface SMSJob {
 }
 
 export enum SMSTaskStatus {
-  PENDING = 'PENDING',
-  SENT = 'SENT',
-  DELIVERED = 'DELIVERED',
-  FAILED = 'FAILED',
+  PENDING = "PENDING",
+  SENT = "SENT",
+  DELIVERED = "DELIVERED",
+  FAILED = "FAILED",
 }
 
 export interface SMSTask {

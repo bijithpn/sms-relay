@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface DashboardState {
   user: { name: string; balance: number } | null;

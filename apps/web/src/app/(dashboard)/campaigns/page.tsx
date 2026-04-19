@@ -1,18 +1,22 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Plus, Send, RefreshCcw, Filter } from 'lucide-react';
-import { PageHeader } from '../../../components/PageHeader';
-import { Card, CardContent, CardHeader } from '../../../components/ui/Card';
-import { Badge } from '../../../components/ui/Badge';
-import { DataTable } from '../../../components/ui/DataTable';
-import { Button } from '../../../components/ui/Button';
-import Link from 'next/link';
-import { useTasks } from '../../../hooks/useApi';
+import React, { useState } from "react";
+import { Plus, Send, RefreshCcw, Filter } from "lucide-react";
+import { PageHeader } from "../../../components/PageHeader";
+import { Card, CardContent, CardHeader } from "../../../components/ui/Card";
+import { Badge } from "../../../components/ui/Badge";
+import { DataTable } from "../../../components/ui/DataTable";
+import { Button } from "../../../components/ui/Button";
+import Link from "next/link";
+import { useTasks } from "../../../hooks/useApi";
 
 export default function CampaignsPage() {
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const { data: tasks, isLoading, refetch } = useTasks(statusFilter || undefined);
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const {
+    data: tasks,
+    isLoading,
+    refetch,
+  } = useTasks(statusFilter || undefined);
 
   if (isLoading && !tasks) {
     return (
@@ -24,14 +28,12 @@ export default function CampaignsPage() {
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
-      <PageHeader 
-        title="SMS History" 
+      <PageHeader
+        title="SMS History"
         description="Monitor your SMS delivery logs, history, and status."
         actions={
           <Link href="/campaigns/new">
-            <Button leftIcon={<Plus size={18} />}>
-              Send SMS
-            </Button>
+            <Button leftIcon={<Plus size={18} />}>Send SMS</Button>
           </Link>
         }
       />
@@ -43,7 +45,7 @@ export default function CampaignsPage() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                 <Filter size={14} className="text-slate-500" />
-                <select 
+                <select
                   className="bg-transparent text-sm border-none outline-none focus:ring-0 text-slate-700"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -55,54 +57,68 @@ export default function CampaignsPage() {
                   <option value="FAILED">Failed</option>
                 </select>
               </div>
-              <Button variant="ghost" size="sm" iconOnly onClick={() => refetch()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                iconOnly
+                onClick={() => refetch()}
+              >
                 <RefreshCcw size={16} />
               </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <DataTable 
+            <DataTable
               data={tasks || []}
               emptyMessage="No SMS tasks found matching the given filters."
               columns={[
-                { 
-                  header: 'Recipient', 
+                {
+                  header: "Recipient",
                   accessor: (item: any) => (
                     <div className="flex flex-col">
-                      <span className="font-bold text-slate-900">{item.recipient}</span>
-                      <span className="text-[10px] text-slate-400">ID: {item.id.slice(0,8)}</span>
+                      <span className="font-bold text-slate-900">
+                        {item.recipient}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        ID: {item.id.slice(0, 8)}
+                      </span>
                     </div>
-                  ) 
+                  ),
                 },
-                { 
-                  header: 'Message', 
+                {
+                  header: "Message",
                   accessor: (item: any) => (
                     <p className="max-w-[200px] sm:max-w-xs md:max-w-md truncate text-slate-600 text-sm">
                       {item.message}
                     </p>
-                  ) 
+                  ),
                 },
-                { 
-                  header: 'Gateway Node', 
-                  accessor: (item: any) => item.device?.phoneNumber || 'Unassigned',
+                {
+                  header: "Gateway Node",
+                  accessor: (item: any) =>
+                    item.device?.phoneNumber || "Unassigned",
                 },
-                { 
-                  header: 'Status', 
+                {
+                  header: "Status",
                   accessor: (item: any) => {
                     const variants: Record<string, any> = {
-                      'DELIVERED': 'success',
-                      'SENT': 'info',
-                      'PENDING': 'warning',
-                      'FAILED': 'error',
+                      DELIVERED: "success",
+                      SENT: "info",
+                      PENDING: "warning",
+                      FAILED: "error",
                     };
                     return (
-                      <Badge variant={variants[item.status] || 'default'}>
+                      <Badge variant={variants[item.status] || "default"}>
                         {item.status}
                       </Badge>
                     );
-                  } 
+                  },
                 },
-                { header: 'Time', accessor: (item: any) => new Date(item.createdAt).toLocaleString() }
+                {
+                  header: "Time",
+                  accessor: (item: any) =>
+                    new Date(item.createdAt).toLocaleString(),
+                },
               ]}
             />
           </CardContent>

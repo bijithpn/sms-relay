@@ -12,8 +12,9 @@ class GatewayQrDialog extends StatelessWidget {
     final state = context.watch<AppState>();
     
     final qrData = json.encode({
-      'url': state.publicUrl.isNotEmpty ? state.publicUrl : 'http://local:${state.port}',
-      'port': state.port,
+      'url': state.localIp != null ? 'http://${state.localIp}:3001' : 'http://local:3001',
+      'port': 3001,
+      'type': 'sms-gateway-node'
     });
 
     return AlertDialog(

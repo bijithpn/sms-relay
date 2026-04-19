@@ -67,36 +67,21 @@ class StatusCard extends StatelessWidget {
   }
 
   Widget _buildConnectionGrid(BuildContext context, AppState state) {
-    final endpoint = '${state.localIp ?? '...Searching...'}:${state.port}';
-    return Row(
-      children: [
-        Expanded(
-          child: _buildInfoCard(
-            context,
-            'Network Endpoint (API)',
-            endpoint,
-            Icons.wifi_tethering,
-            () {
-              if (state.localIp != null) {
-                Clipboard.setData(ClipboardData(text: 'http://$endpoint/send-sms'));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Endpoint copied to clipboard'), duration: Duration(seconds: 1)),
-                );
-              }
-            },
-            subtitle: 'Click to copy full API URL',
-          ),
-        ),
-        const SizedBox(width: 12),
-        _buildInfoCard(
-          context,
-          'Port',
-          state.port.toString(),
-          Icons.lan,
-          () => _showEditDialog(context, 'Update Port', state.port.toString(), (v) => state.updatePort(int.parse(v)), isNumber: true),
-          isCompact: true,
-        ),
-      ],
+    final endpoint = '${state.localIp ?? 'Detection...'}';
+    return _buildInfoCard(
+      context,
+      'Network Connection',
+      state.localIp != null ? 'Connected to $endpoint' : 'Searching for Network...',
+      Icons.wifi_tethering,
+      () {
+        if (state.localIp != null) {
+          Clipboard.setData(ClipboardData(text: 'http://$endpoint:3001/send-sms'));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('API Endpoint copied to clipboard'), duration: Duration(seconds: 1)),
+          );
+        }
+      },
+      subtitle: 'Port 3001 is used by default',
     );
   }
 
@@ -111,18 +96,20 @@ class StatusCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Icon(icon, size: 20, color: AppTheme.mistralOrange),
-                  if (subtitle != null) ...[
-                    const SizedBox(width: 8),
-                    const Icon(Icons.copy, size: 12, color: Colors.grey),
-                  ]
+                  if (subtitle != null) const Icon(Icons.copy, size: 12, color: Colors.grey),
                 ],
               ),
               const SizedBox(height: 8),
               Text(label, style: const TextStyle(color: Color(0xFF3C3C3C), fontSize: 11, fontWeight: FontWeight.w400)),
               const SizedBox(height: 2),
               Text(value, style: TextStyle(fontWeight: FontWeight.w400, fontSize: isCompact ? 14 : 15, color: AppTheme.mistralBlack)),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+              ]
             ],
           ),
         ),
@@ -165,32 +152,12 @@ class StatusCard extends StatelessWidget {
             const Divider(color: AppTheme.blockGold),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Public URL / Tunnel', style: TextStyle(fontSize: 12, color: Color(0xFF3C3C3C))),
-              subtitle: Text(state.publicUrl.isEmpty ? 'Not set' : state.publicUrl, style: const TextStyle(fontWeight: FontWeight.w400)),
-              trailing: state.publicUrl.isNotEmpty
-                ? IconButton(icon: const Icon(Icons.copy, size: 18, color: AppTheme.mistralBlack), onPressed: () => Clipboard.setData(ClipboardData(text: state.publicUrl)))
-                : null,
-              onTap: () => _showEditDialog(context, 'Update Tunnel URL', state.publicUrl, (v) => state.updatePublicUrl(v)),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Sync Endpoint', style: TextStyle(fontSize: 12, color: Color(0xFF3C3C3C))),
-              subtitle: Text(state.syncUrl.isEmpty ? 'Not set' : state.syncUrl, style: const TextStyle(fontWeight: FontWeight.w400)),
+              title: const Text('Sync Endpoint (Dashboard URL)', style: TextStyle(fontSize: 12, color: Color(0xFF3C3C3C))),
+              subtitle: Text(state.syncUrl.isEmpty ? 'Not set (Scan QR Code)' : state.syncUrl, style: const TextStyle(fontWeight: FontWeight.w400)),
               trailing: state.isSyncing
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppTheme.mistralOrange)))
                 : IconButton(icon: const Icon(Icons.sync, size: 18, color: AppTheme.mistralBlack), onPressed: state.syncWithBackend),
               onTap: () => _showEditDialog(context, 'Update Sync URL', state.syncUrl, (v) => state.updateSyncUrl(v)),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Auto-Sync Status', style: TextStyle(fontSize: 13, color: AppTheme.mistralBlack)),
-                Switch.adaptive(
-                  value: state.autoSync,
-                  onChanged: (v) => state.toggleAutoSync(v),
-                  activeColor: AppTheme.mistralOrange,
-                ),
-              ],
             ),
           ],
         ),

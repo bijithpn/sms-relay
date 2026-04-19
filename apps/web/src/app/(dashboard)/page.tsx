@@ -1,13 +1,21 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useDashboardStats } from '../../hooks/useApi';
-import { Send, CheckCircle2, XCircle, Clock, Activity, AlertTriangle, Smartphone } from 'lucide-react';
-import { PageHeader } from '../../components/PageHeader';
-import { DashboardCard } from '../../components/DashboardCard';
-import { Card, CardHeader, CardContent } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { DataTable } from '../../components/ui/DataTable';
+import React from "react";
+import { useDashboardStats } from "../../hooks/useApi";
+import {
+  Send,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Activity,
+  AlertTriangle,
+  Smartphone,
+} from "lucide-react";
+import { PageHeader } from "../../components/PageHeader";
+import { DashboardCard } from "../../components/DashboardCard";
+import { Card, CardHeader, CardContent } from "../../components/ui/Card";
+import { Badge } from "../../components/ui/Badge";
+import { DataTable } from "../../components/ui/DataTable";
 
 export default function Dashboard() {
   const { data: stats, isLoading, error } = useDashboardStats();
@@ -31,64 +39,73 @@ export default function Dashboard() {
   }
 
   const columns = [
-    { 
-      header: 'Recipient', 
+    {
+      header: "Recipient",
       accessor: (task: any) => (
         <div className="flex flex-col">
           <span className="font-bold text-slate-900">{task.recipient}</span>
-          <span className="text-[10px] text-slate-400 font-mono">{task.id.slice(0, 8)}</span>
+          <span className="text-[10px] text-slate-400 font-mono">
+            {task.id.slice(0, 8)}
+          </span>
         </div>
-      )
+      ),
     },
-    { 
-      header: 'Message', 
+    {
+      header: "Message",
       accessor: (task: any) => (
-        <p className="max-w-xs truncate text-slate-500 italic">"{task.message}"</p>
-      )
+        <p className="max-w-xs truncate text-slate-500 italic">
+          "{task.message}"
+        </p>
+      ),
     },
-    { 
-      header: 'Device', 
-      accessor: (task: any) => (
+    {
+      header: "Device",
+      accessor: (task: any) =>
         task.device ? (
           <Badge variant="outline" className="text-[10px] gap-1">
-            <Smartphone size={10} /> {task.device.phoneNumber || 'Node'}
+            <Smartphone size={10} /> {task.device.phoneNumber || "Node"}
           </Badge>
         ) : (
           <span className="text-slate-400 text-xs">-</span>
-        )
-      )
+        ),
     },
-    { 
-      header: 'Status', 
+    {
+      header: "Status",
       accessor: (task: any) => {
         const variants: any = {
-          PENDING: 'warning',
-          SENT: 'info',
-          DELIVERED: 'success',
-          FAILED: 'error'
+          PENDING: "warning",
+          SENT: "info",
+          DELIVERED: "success",
+          FAILED: "error",
         };
         return (
-          <Badge variant={variants[task.status] || 'default'} className="text-[10px] font-bold">
+          <Badge
+            variant={variants[task.status] || "default"}
+            className="text-[10px] font-bold"
+          >
             {task.status}
           </Badge>
         );
-      }
+      },
     },
-    { 
-      header: 'Time', 
+    {
+      header: "Time",
       accessor: (task: any) => (
         <span className="text-xs text-slate-400">
-          {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(task.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   const metricsIcons: any = {
-    'Sent Today': Send,
-    'Delivered': CheckCircle2,
-    'Failed': XCircle,
-    'Pending': Clock
+    "Sent Today": Send,
+    Delivered: CheckCircle2,
+    Failed: XCircle,
+    Pending: Clock,
   };
 
   return (
@@ -142,21 +159,37 @@ export default function Dashboard() {
                 <div className="space-y-4">
                   {stats?.devices.length > 0 ? (
                     stats.devices.map((device: any) => (
-                      <div key={device.id} className="flex items-center justify-between p-3 rounded-none border border-block-gold/30 bg-cream">
+                      <div
+                        key={device.id}
+                        className="flex items-center justify-between p-3 rounded-none border border-block-gold/30 bg-cream"
+                      >
                         <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${device.status === 'ONLINE' ? 'bg-emerald-500 animate-pulse' : 'bg-block-gold'}`} />
+                          <div
+                            className={`w-2 h-2 rounded-full ${device.status === "ONLINE" ? "bg-emerald-500 animate-pulse" : "bg-block-gold"}`}
+                          />
                           <div className="flex flex-col">
-                            <p className="text-xs font-normal text-mistral-black">{device.phoneNumber || 'Unknown'}</p>
-                            <p className="text-[10px] text-mistral-black/60 font-mono truncate max-w-[120px]">{device.publicUrl}</p>
+                            <p className="text-xs font-normal text-mistral-black">
+                              {device.phoneNumber || "Unknown"}
+                            </p>
+                            <p className="text-[10px] text-mistral-black/60 font-mono truncate max-w-[120px]">
+                              {device.publicUrl}
+                            </p>
                           </div>
                         </div>
-                        <Badge variant={device.status === 'ONLINE' ? 'success' : 'default'} className="text-[9px]">
+                        <Badge
+                          variant={
+                            device.status === "ONLINE" ? "success" : "default"
+                          }
+                          className="text-[9px]"
+                        >
                           {device.status}
                         </Badge>
                       </div>
                     ))
                   ) : (
-                    <p className="text-center py-4 text-xs text-mistral-black/40 italic">No nodes registered.</p>
+                    <p className="text-center py-4 text-xs text-mistral-black/40 italic">
+                      No nodes registered.
+                    </p>
                   )}
                 </div>
               </CardContent>

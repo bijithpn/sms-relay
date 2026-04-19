@@ -54,6 +54,11 @@ void main() async {
   // Initialize Storage (Hive)
   await StorageService.init();
 
+  // Clear previous connection URL on every start as requested
+  // This prevents connection failures when the network or tunnel URL has changed
+  StorageService.syncUrl = '';
+  StorageService.tunnelUrl = '';
+
   await initializeService();
   
   runApp(

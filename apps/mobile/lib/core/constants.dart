@@ -5,7 +5,7 @@ class AppConstants {
   static const String smsChannel = 'com.smsgateway/sms';
   static const String statusChannel = 'com.smsgateway/sms_status';
 
-  static const String defaultPort = '8080';
+  static const String defaultPort = '3001';
 
   // Status Colors
   static const Color activeColor = Colors.green;

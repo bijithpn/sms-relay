@@ -1,37 +1,40 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { 
-  ArrowLeft, 
-  Send, 
-  Users, 
-  FileText, 
+import React, { useState } from "react";
+import {
+  ArrowLeft,
+  Send,
+  Users,
+  FileText,
   Info,
   AlertTriangle,
   Clock,
-  CheckCircle2
-} from 'lucide-react';
-import { PageHeader } from '../../../../components/PageHeader';
-import { Card, CardHeader, CardContent } from '../../../../components/ui/Card';
-import { Button } from '../../../../components/ui/Button';
-import { Badge } from '../../../../components/ui/Badge';
-import { WarningBanner } from '../../../../components/ui/WarningBanner';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { apiClient } from '../../../../lib/api';
+  CheckCircle2,
+} from "lucide-react";
+import { PageHeader } from "../../../../components/PageHeader";
+import { Card, CardHeader, CardContent } from "../../../../components/ui/Card";
+import { Button } from "../../../../components/ui/Button";
+import { Badge } from "../../../../components/ui/Badge";
+import { WarningBanner } from "../../../../components/ui/WarningBanner";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { apiClient } from "../../../../lib/api";
 
 export default function NewCampaignPage() {
-  const [message, setMessage] = useState('');
-  const [recipients, setRecipients] = useState('');
+  const [message, setMessage] = useState("");
+  const [recipients, setRecipients] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [confirmedAuthorized, setConfirmedAuthorized] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const characterCount = message.length;
   const segments = Math.ceil(characterCount / 160) || 0;
-  const recipientList = recipients.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean);
+  const recipientList = recipients
+    .split(/[\s,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
   const recipientCount = recipientList.length;
 
   const isFormValid = message.length > 0 && recipientCount > 0;
@@ -39,17 +42,20 @@ export default function NewCampaignPage() {
   const startCampaign = async () => {
     if (!isFormValid || !confirmedAuthorized) return;
     setIsStarting(true);
-    setError('');
+    setError("");
 
     try {
-      await apiClient.post('/tasks/bulk', {
+      await apiClient.post("/tasks/bulk", {
         recipients: recipientList,
         message,
       });
       setIsConfirming(false);
-      router.push('/campaigns');
+      router.push("/campaigns");
     } catch (e: any) {
-      setError(e.message || 'Failed to create campaign tasks. Check the API and database connection.');
+      setError(
+        e.message ||
+          "Failed to create campaign tasks. Check the API and database connection.",
+      );
     } finally {
       setIsStarting(false);
     }
@@ -58,8 +64,8 @@ export default function NewCampaignPage() {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <div className="bg-white border-b border-slate-200">
-        <PageHeader 
-          title="Start SMS Campaign" 
+        <PageHeader
+          title="Start SMS Campaign"
           description="Create a local SMS test campaign."
           actions={
             <Link href="/campaigns">
@@ -83,7 +89,9 @@ export default function NewCampaignPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Local SIM / Device</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Local SIM / Device
+                </label>
                 <select className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm">
                   <option>Default (Auto-select)</option>
                   <option>SIM-01 (+91 98765 43210)</option>
@@ -92,18 +100,26 @@ export default function NewCampaignPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Message</label>
-                  <Badge variant="outline">{characterCount} chars / {segments} segment(s)</Badge>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Message
+                  </label>
+                  <Badge variant="outline">
+                    {characterCount} chars / {segments} segment(s)
+                  </Badge>
                 </div>
-                <textarea 
+                <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Enter your test message here..."
                   className="w-full h-32 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" className="text-xs py-1">Insert Variable</Button>
-                  <Button variant="ghost" size="sm" className="text-xs py-1">Select Template</Button>
+                  <Button variant="ghost" size="sm" className="text-xs py-1">
+                    Insert Variable
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs py-1">
+                    Select Template
+                  </Button>
                 </div>
               </div>
 
@@ -115,18 +131,20 @@ export default function NewCampaignPage() {
                   </label>
                   <Badge variant="info">{recipientCount} recipients</Badge>
                 </div>
-                <textarea 
+                <textarea
                   value={recipients}
                   onChange={(e) => setRecipients(e.target.value)}
                   placeholder="Enter phone numbers separated by commas or spaces..."
                   className="w-full h-24 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
-                <p className="text-[10px] text-slate-400">Example: +919876543210, +1234567890</p>
+                <p className="text-[10px] text-slate-400">
+                  Example: +919876543210, +1234567890
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          <WarningBanner 
+          <WarningBanner
             variant="info"
             message="Only send messages to users who have given explicit consent. High volume can lead to SIM blocking."
           />
@@ -145,7 +163,9 @@ export default function NewCampaignPage() {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Recipients</span>
-                  <span className="font-bold text-slate-900">{recipientCount}</span>
+                  <span className="font-bold text-slate-900">
+                    {recipientCount}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Segments per SMS</span>
@@ -153,7 +173,9 @@ export default function NewCampaignPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Total SMS Units</span>
-                  <span className="font-bold text-slate-900">{recipientCount * segments}</span>
+                  <span className="font-bold text-slate-900">
+                    {recipientCount * segments}
+                  </span>
                 </div>
               </div>
 
@@ -162,12 +184,12 @@ export default function NewCampaignPage() {
                   <Clock size={14} />
                   Est. Duration: ~{Math.ceil(recipientCount / 10)} mins
                 </div>
-                <Button 
+                <Button
                   className="w-full py-4 text-base font-bold shadow-lg shadow-blue-500/20"
                   disabled={!isFormValid}
                   onClick={() => {
                     setConfirmedAuthorized(false);
-                    setError('');
+                    setError("");
                     setIsConfirming(true);
                   }}
                   rightIcon={<Send size={18} />}
@@ -182,10 +204,14 @@ export default function NewCampaignPage() {
             <CardContent className="p-5 space-y-3">
               <div className="flex items-center gap-2">
                 <Info size={18} />
-                <h3 className="font-bold text-sm uppercase tracking-wider">Pro-Tip</h3>
+                <h3 className="font-bold text-sm uppercase tracking-wider">
+                  Pro-Tip
+                </h3>
               </div>
               <p className="text-xs leading-relaxed opacity-90">
-                Running a large test? Use the <strong>Rate Limit Settings</strong> to adjust how fast messages are sent to avoid SIM blocking.
+                Running a large test? Use the{" "}
+                <strong>Rate Limit Settings</strong> to adjust how fast messages
+                are sent to avoid SIM blocking.
               </p>
             </CardContent>
           </Card>
@@ -202,37 +228,50 @@ export default function NewCampaignPage() {
                   <AlertTriangle size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">Are you sure?</h3>
-                  <p className="text-sm text-slate-500">Review your campaign before launching.</p>
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Are you sure?
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Review your campaign before launching.
+                  </p>
                 </div>
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Total Recipients</span>
-                  <span className="font-bold text-slate-900">{recipientCount}</span>
+                  <span className="font-bold text-slate-900">
+                    {recipientCount}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Rate Limit</span>
-                  <span className="font-bold text-slate-900">10 SMS/min (Safe)</span>
+                  <span className="font-bold text-slate-900">
+                    10 SMS/min (Safe)
+                  </span>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <WarningBanner 
+                <WarningBanner
                   variant="error"
                   message="I confirm this is authorized testing traffic and I accept responsibility for any SIM blocking due to high volume."
                 />
-                
+
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                   <input
                     type="checkbox"
                     id="auth-check"
                     checked={confirmedAuthorized}
-                    onChange={(event) => setConfirmedAuthorized(event.target.checked)}
+                    onChange={(event) =>
+                      setConfirmedAuthorized(event.target.checked)
+                    }
                     className="w-4 h-4 text-blue-600 rounded"
                   />
-                  <label htmlFor="auth-check" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+                  <label
+                    htmlFor="auth-check"
+                    className="text-sm font-medium text-slate-700 cursor-pointer select-none"
+                  >
                     I confirm this is authorized testing.
                   </label>
                 </div>
@@ -245,15 +284,15 @@ export default function NewCampaignPage() {
               )}
 
               <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  className="flex-1" 
+                <Button
+                  variant="outline"
+                  className="flex-1"
                   onClick={() => setIsConfirming(false)}
                 >
                   Go Back
                 </Button>
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   className="flex-1"
                   onClick={startCampaign}
                   disabled={!confirmedAuthorized || isStarting}

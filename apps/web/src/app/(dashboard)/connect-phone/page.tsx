@@ -1,43 +1,49 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { 
-  Smartphone, 
-  Zap, 
-  SmartphoneNfc, 
-  Send, 
-  Wifi, 
-  Globe, 
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  Smartphone,
+  Zap,
+  SmartphoneNfc,
+  Send,
+  Wifi,
+  Globe,
   Cloud,
   Copy,
   CheckCircle2,
   Save,
   RotateCcw,
-  RefreshCw
-} from 'lucide-react';
-import { PageHeader } from '../../../components/PageHeader';
-import { Card, CardHeader, CardContent } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
-import { Badge } from '../../../components/ui/Badge';
-import QRCode from 'react-qr-code';
-import { useTemplates, useRecipients } from '../../../hooks/useApi';
-import { apiClient } from '../../../lib/api';
+  RefreshCw,
+} from "lucide-react";
+import { PageHeader } from "../../../components/PageHeader";
+import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
+import { Button } from "../../../components/ui/Button";
+import { Badge } from "../../../components/ui/Badge";
+import QRCode from "react-qr-code";
+import { useTemplates, useRecipients } from "../../../hooks/useApi";
+import { apiClient } from "../../../lib/api";
 
 export default function ConnectPhonePage() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'local' | 'ngrok' | 'cloudflare'>('local');
+  const [activeTab, setActiveTab] = useState<"local" | "ngrok" | "cloudflare">(
+    "local",
+  );
   const [manualUrl, setManualUrl] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [copied, setCopied] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
+  const [testResult, setTestResult] = useState<"success" | "error" | null>(
+    null,
+  );
   const [testSmsNumber, setTestSmsNumber] = useState("+91");
-  const [testSmsMessage, setTestSmsMessage] = useState("Hello from SMS Relay! Your mobile node is correctly configured.");
+  const [testSmsMessage, setTestSmsMessage] = useState(
+    "Hello from SMS Relay! Your mobile node is correctly configured.",
+  );
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [testSmsError, setTestSmsError] = useState("");
   const [testSmsSuccess, setTestSmsSuccess] = useState(false);
-  
+
   const [devices, setDevices] = useState<any[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
@@ -52,8 +58,8 @@ export default function ConnectPhonePage() {
       steps: [
         "Open terminal and run 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux).",
         "Find your IPv4 Address (e.g. 192.168.1.5).",
-        "Format it as: http://YOUR_IP:3000"
-      ]
+        "Format it as: http://YOUR_IP:3000",
+      ],
     },
     ngrok: {
       title: "Ngrok Tunnel",
@@ -62,8 +68,8 @@ export default function ConnectPhonePage() {
       steps: [
         "Install Ngrok CLI and run the command above.",
         "Copy the 'Forwarding' HTTPS URL provided by Ngrok.",
-        "Ensure the URL ends with .ngrok-free.app"
-      ]
+        "Ensure the URL ends with .ngrok-free.app",
+      ],
     },
     cloudflare: {
       title: "Cloudflare",
@@ -72,37 +78,40 @@ export default function ConnectPhonePage() {
       steps: [
         "Install Cloudflared and run the command above.",
         "Wait for the output to show a .trycloudflare.com URL.",
-        "Copy that URL and paste it into the input below."
-      ]
-    }
+        "Copy that URL and paste it into the input below.",
+      ],
+    },
   };
 
-  // Load from localStorage on mount or auto-detect LAN endpoint
+  // Reset Base API URL on launch/refresh to handle network changes
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem("BASE_URL");
-    if (saved) {
-      setManualUrl(saved);
-      setInputValue(saved);
-    } else {
-      apiClient.get('/system/ip').then((data: any) => {
+
+    // Clear saved URL to force a fresh discovery on every page load
+    localStorage.removeItem("BASE_URL");
+    setManualUrl("");
+    setInputValue("");
+
+    // Auto-detect current LAN endpoint
+    apiClient
+      .get("/system/ip")
+      .then((data: any) => {
         if (data?.ip) {
           const directUrl = `http://${data.ip}:3001`;
-          localStorage.setItem("BASE_URL", directUrl);
           setManualUrl(directUrl);
           setInputValue(directUrl);
         }
-      }).catch(console.error);
-    }
+      })
+      .catch(console.error);
   }, []);
 
   // Priority Resolver: Manual > Env > Origin
   const baseUrl = useMemo(() => {
     if (!mounted) return "";
-    if (manualUrl) return manualUrl.replace(/\/$/, '');
+    if (manualUrl) return manualUrl.replace(/\/$/, "");
     const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    if (envUrl) return envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') return window.location.origin;
+    if (envUrl) return envUrl.replace(/\/$/, "");
+    if (typeof window !== "undefined") return window.location.origin;
     return "";
   }, [manualUrl, mounted]);
 
@@ -113,10 +122,10 @@ export default function ConnectPhonePage() {
   const fetchDevices = async () => {
     setIsLoadingDevices(true);
     try {
-      const data = await apiClient.get('/devices');
+      const data = await apiClient.get("/devices");
       setDevices(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error('Failed to fetch devices:', e);
+      console.error("Failed to fetch devices:", e);
     } finally {
       setIsLoadingDevices(false);
     }
@@ -150,18 +159,18 @@ export default function ConnectPhonePage() {
     setIsOptimizing(true);
     setTestResult(null);
     try {
-      const result = await apiClient.post('/system/tunnel/start', {
-        mode: 'local',
+      const result = await apiClient.post("/system/tunnel/start", {
+        mode: "local",
         port: 3001,
       });
-      const optimizedUrl = result.url.replace(/\/$/, '');
+      const optimizedUrl = result.url.replace(/\/$/, "");
       localStorage.setItem("BASE_URL", optimizedUrl);
       setManualUrl(optimizedUrl);
       setInputValue(optimizedUrl);
-      setTestResult('success');
+      setTestResult("success");
     } catch (e) {
       console.error(e);
-      setTestResult('error');
+      setTestResult("error");
     } finally {
       setIsOptimizing(false);
     }
@@ -172,10 +181,10 @@ export default function ConnectPhonePage() {
     setTestResult(null);
     try {
       const res = await fetch(`${baseUrl}/api/system/ip`);
-      if (res.ok) setTestResult('success');
-      else setTestResult('error');
+      if (res.ok) setTestResult("success");
+      else setTestResult("error");
     } catch (e) {
-      setTestResult('error');
+      setTestResult("error");
     } finally {
       setIsTesting(false);
     }
@@ -187,31 +196,35 @@ export default function ConnectPhonePage() {
     setTestSmsError("");
     setTestSmsSuccess(false);
     try {
-      const task = await apiClient.post('/tasks', {
+      const task = await apiClient.post("/tasks", {
         recipient: testSmsNumber,
         message: testSmsMessage,
-        status: 'PENDING'
+        status: "PENDING",
       });
-      
+
       let attempts = 0;
       const interval = setInterval(async () => {
         attempts++;
         try {
           const updatedTask = await apiClient.get(`/tasks/${task.id}`);
-          if (updatedTask.status === 'SENT') {
+          if (updatedTask.status === "SENT") {
             clearInterval(interval);
             setIsSendingSms(false);
             setTestSmsSuccess(true);
             setTestSmsNumber("");
             setTimeout(() => setTestSmsSuccess(false), 5000);
-          } else if (updatedTask.status === 'FAILED') {
+          } else if (updatedTask.status === "FAILED") {
             clearInterval(interval);
             setIsSendingSms(false);
-            setTestSmsError('Delivery failed. The mobile node returned an error (likely offline).');
+            setTestSmsError(
+              "Delivery failed. The mobile node returned an error (likely offline).",
+            );
           } else if (attempts > 20) {
             clearInterval(interval);
             setIsSendingSms(false);
-            setTestSmsError('Timeout: Task is still pending. Is your app ONLINE and synced?');
+            setTestSmsError(
+              "Timeout: Task is still pending. Is your app ONLINE and synced?",
+            );
           }
         } catch (e) {
           clearInterval(interval);
@@ -220,7 +233,7 @@ export default function ConnectPhonePage() {
       }, 1000);
     } catch (e: any) {
       console.error(e);
-      setTestSmsError(e.message || 'Failed to create test task.');
+      setTestSmsError(e.message || "Failed to create test task.");
       setIsSendingSms(false);
     }
   };
@@ -235,14 +248,13 @@ export default function ConnectPhonePage() {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 font-sans">
-      <PageHeader 
-        title="Connect Phone" 
+      <PageHeader
+        title="Connect Phone"
         description="Sync your Flutter app to send SMS automatically via API."
       />
 
       <div className="px-4 md:px-8 pb-8 space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
@@ -254,39 +266,63 @@ export default function ConnectPhonePage() {
               <CardContent className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base API URL</label>
-                    <Badge variant={manualUrl ? "info" : "default"} className="text-[9px]">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      Base API URL
+                    </label>
+                    <Badge
+                      variant={manualUrl ? "info" : "default"}
+                      className="text-[9px]"
+                    >
                       {manualUrl ? "Manual Override" : "System Default"}
                     </Badge>
                   </div>
                   <div className="flex gap-2">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="e.g. http://192.168.1.5:3000"
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       className="flex-1 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
-                    <Button onClick={handleSave} size="sm" leftIcon={<Save size={16} />}>
+                    <Button
+                      onClick={handleSave}
+                      size="sm"
+                      leftIcon={<Save size={16} />}
+                    >
                       Save
                     </Button>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
-                  <Button size="sm" onClick={handleOptimizeUrl} disabled={isOptimizing} isLoading={isOptimizing} leftIcon={<Zap size={14} />}>
+                  <Button
+                    size="sm"
+                    onClick={handleOptimizeUrl}
+                    disabled={isOptimizing}
+                    isLoading={isOptimizing}
+                    leftIcon={<Zap size={14} />}
+                  >
                     Optimize Link
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleReset} leftIcon={<RotateCcw size={14} />}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReset}
+                    leftIcon={<RotateCcw size={14} />}
+                  >
                     Reset
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={testConnection} 
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={testConnection}
                     disabled={isTesting || !baseUrl}
                   >
-                    {isTesting ? "Testing..." : testResult === 'success' ? "Connection OK" : "Test Connection"}
+                    {isTesting
+                      ? "Testing..."
+                      : testResult === "success"
+                        ? "Connection OK"
+                        : "Test Connection"}
                   </Button>
                 </div>
               </CardContent>
@@ -298,42 +334,77 @@ export default function ConnectPhonePage() {
                   <Smartphone size={18} className="text-emerald-500" />
                   Active Mobile Nodes
                 </h3>
-                <Badge variant="success" className="text-[10px]">LIVE</Badge>
+                <Badge variant="success" className="text-[10px]">
+                  LIVE
+                </Badge>
               </CardHeader>
               <CardContent>
                 {isLoadingDevices ? (
                   <div className="text-center py-8">
-                    <RefreshCw size={24} className="animate-spin mx-auto text-slate-300" />
+                    <RefreshCw
+                      size={24}
+                      className="animate-spin mx-auto text-slate-300"
+                    />
                   </div>
                 ) : devices.length === 0 ? (
                   <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-2xl">
-                    <Smartphone size={32} className="mx-auto text-slate-200 mb-2" />
-                    <p className="text-xs text-slate-500 font-medium">No active devices found.</p>
-                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Sync your app to appear here</p>
+                    <Smartphone
+                      size={32}
+                      className="mx-auto text-slate-200 mb-2"
+                    />
+                    <p className="text-xs text-slate-500 font-medium">
+                      No active devices found.
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">
+                      Sync your app to appear here
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {devices.map((device) => (
-                      <div key={device.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                      <div
+                        key={device.id}
+                        className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-sm"
+                      >
                         <div className="flex items-center gap-4">
                           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
                           <div>
-                            <p className="text-sm font-bold text-slate-900">{device.phoneNumber || 'Mobile Node'}</p>
+                            <p className="text-sm font-bold text-slate-900">
+                              {device.phoneNumber || "Mobile Node"}
+                            </p>
                             <p className="text-[10px] text-slate-500 font-medium">
-                              {device.publicUrl ? `Endpoint: ${device.publicUrl}` : 'No public endpoint synced'}
+                              {device.publicUrl
+                                ? `Endpoint: ${device.publicUrl}`
+                                : "No public endpoint synced"}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <Badge variant="success" className="text-[9px] font-bold tracking-widest uppercase">Online</Badge>
-                          <p className="text-[9px] text-slate-400 mt-1 font-medium italic">Active {new Date(device.lastSeen).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                          <Badge
+                            variant="success"
+                            className="text-[9px] font-bold tracking-widest uppercase"
+                          >
+                            Online
+                          </Badge>
+                          <p className="text-[9px] text-slate-400 mt-1 font-medium italic">
+                            Active{" "}
+                            {new Date(device.lastSeen).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="mt-6 pt-4 border-t border-slate-100 flex justify-center">
-                  <Button variant="ghost" size="sm" onClick={fetchDevices} className="text-slate-400 hover:text-blue-600 font-bold uppercase tracking-tighter">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchDevices}
+                    className="text-slate-400 hover:text-blue-600 font-bold uppercase tracking-tighter"
+                  >
                     <RefreshCw size={12} className="mr-2" /> Force Refresh
                   </Button>
                 </div>
@@ -343,29 +414,51 @@ export default function ConnectPhonePage() {
 
           <div className="space-y-6">
             <Card className="flex flex-col items-center justify-center p-8 text-center bg-white border border-slate-200">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest mb-6">Flutter App Sync</h3>
-              
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest mb-6">
+                Flutter App Sync
+              </h3>
+
               <div className="w-48 h-48 bg-white p-4 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-slate-100">
                 {syncUrl ? (
-                  <QRCode value={syncUrl} size={160} style={{ height: "auto", maxWidth: "100%", width: "100%" }} viewBox={`0 0 256 256`} />
+                  <QRCode
+                    value={syncUrl}
+                    size={160}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 256 256`}
+                  />
                 ) : (
                   <div className="space-y-2 text-slate-300">
                     <SmartphoneNfc size={48} className="mx-auto" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest">Invalid URL</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest">
+                      Invalid URL
+                    </p>
                   </div>
                 )}
               </div>
-              
+
               <div className="space-y-4 w-full">
                 <div className="flex items-center justify-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${syncUrl ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                  <p className="text-xs font-bold text-slate-900 uppercase tracking-tight">Sync Endpoint</p>
+                  <div
+                    className={`w-2 h-2 rounded-full ${syncUrl ? "bg-emerald-500" : "bg-slate-300"}`}
+                  />
+                  <p className="text-xs font-bold text-slate-900 uppercase tracking-tight">
+                    Sync Endpoint
+                  </p>
                 </div>
-                
+
                 <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 group">
-                  <code className="text-[10px] font-mono text-slate-600 truncate flex-1 text-left">{syncUrl || 'Enter URL above'}</code>
-                  <button onClick={copyToClipboard} className="p-1 text-slate-400 hover:text-blue-600">
-                    {copied ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  <code className="text-[10px] font-mono text-slate-600 truncate flex-1 text-left">
+                    {syncUrl || "Enter URL above"}
+                  </code>
+                  <button
+                    onClick={copyToClipboard}
+                    className="p-1 text-slate-400 hover:text-blue-600"
+                  >
+                    {copied ? (
+                      <CheckCircle2 size={14} className="text-emerald-500" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -380,35 +473,46 @@ export default function ConnectPhonePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Recipient</label>
-                  <select 
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Select Recipient
+                  </label>
+                  <select
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     onChange={(e) => {
                       if (e.target.value) setTestSmsNumber(e.target.value);
                     }}
-                    value={recipients?.find(r => r.phoneNumber === testSmsNumber)?.phoneNumber || ""}
+                    value={
+                      recipients?.find((r) => r.phoneNumber === testSmsNumber)
+                        ?.phoneNumber || ""
+                    }
                   >
                     <option value="">-- Manual Entry --</option>
                     {recipients?.map((r: any) => (
-                      <option key={r.id} value={r.phoneNumber}>{r.name} ({r.phoneNumber})</option>
+                      <option key={r.id} value={r.phoneNumber}>
+                        {r.name} ({r.phoneNumber})
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone Number</label>
-                  <input 
-                    type="tel" 
-                    placeholder="+919876543210" 
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+919876543210"
                     value={testSmsNumber}
                     onChange={(e) => setTestSmsNumber(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Template</label>
-                  <select 
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Select Template
+                  </label>
+                  <select
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     onChange={(e) => {
                       if (e.target.value) setTestSmsMessage(e.target.value);
@@ -416,14 +520,18 @@ export default function ConnectPhonePage() {
                   >
                     <option value="">-- Custom Message --</option>
                     {templates?.map((t: any) => (
-                      <option key={t.id} value={t.content}>{t.name}</option>
+                      <option key={t.id} value={t.content}>
+                        {t.name}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Message</label>
-                  <textarea 
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Message
+                  </label>
+                  <textarea
                     value={testSmsMessage}
                     onChange={(e) => setTestSmsMessage(e.target.value)}
                     placeholder="Enter test message..."
@@ -431,14 +539,24 @@ export default function ConnectPhonePage() {
                   />
                 </div>
 
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={handleSendTestSms}
                   disabled={isSendingSms || !testSmsNumber}
-                  leftIcon={testSmsSuccess ? <CheckCircle2 size={16} /> : <Send size={16} />}
+                  leftIcon={
+                    testSmsSuccess ? (
+                      <CheckCircle2 size={16} />
+                    ) : (
+                      <Send size={16} />
+                    )
+                  }
                   variant={testSmsSuccess ? "success" : "primary"}
                 >
-                  {isSendingSms ? "Queueing..." : testSmsSuccess ? "Sent Successfully!" : "Send via App"}
+                  {isSendingSms
+                    ? "Queueing..."
+                    : testSmsSuccess
+                      ? "Sent Successfully!"
+                      : "Send via App"}
                 </Button>
                 {testSmsSuccess && (
                   <p className="text-[10px] text-emerald-600 font-bold bg-emerald-50 p-2 rounded border border-emerald-100 text-center">
@@ -446,7 +564,9 @@ export default function ConnectPhonePage() {
                   </p>
                 )}
                 {testSmsError && (
-                  <p className="text-[10px] text-rose-600 font-medium bg-rose-50 p-2 rounded border border-rose-100">{testSmsError}</p>
+                  <p className="text-[10px] text-rose-600 font-medium bg-rose-50 p-2 rounded border border-rose-100">
+                    {testSmsError}
+                  </p>
                 )}
               </CardContent>
             </Card>

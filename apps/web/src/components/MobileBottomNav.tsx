@@ -1,23 +1,27 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Send, Bell, Menu } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, Send, Bell, Menu } from "lucide-react";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const MobileBottomNav = ({ onMenuClick }: { onMenuClick: () => void }) => {
+export const MobileBottomNav = ({
+  onMenuClick,
+}: {
+  onMenuClick: () => void;
+}) => {
   const pathname = usePathname();
 
   const primaryItems = [
-    { label: 'Dash', href: '/', icon: LayoutDashboard },
-    { label: 'Send', href: '/campaigns', icon: Send },
-    { label: 'Alerts', href: '/alerts', icon: Bell },
+    { label: "Dash", href: "/", icon: LayoutDashboard },
+    { label: "Send", href: "/campaigns", icon: Send },
+    { label: "Alerts", href: "/alerts", icon: Bell },
   ];
 
   return (
@@ -30,15 +34,19 @@ export const MobileBottomNav = ({ onMenuClick }: { onMenuClick: () => void }) =>
             href={item.href}
             className={cn(
               "flex flex-col items-center justify-center gap-1 min-w-[64px]",
-              isActive ? "text-blue-600" : "text-slate-500 hover:text-slate-900"
+              isActive
+                ? "text-blue-600"
+                : "text-slate-500 hover:text-slate-900",
             )}
           >
             <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-            <span className="text-[10px] font-medium leading-none">{item.label}</span>
+            <span className="text-[10px] font-medium leading-none">
+              {item.label}
+            </span>
           </Link>
         );
       })}
-      <button 
+      <button
         onClick={onMenuClick}
         className="flex flex-col items-center justify-center gap-1 min-w-[64px] text-slate-500 hover:text-slate-900"
       >

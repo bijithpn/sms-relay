@@ -22,7 +22,7 @@ class AppState extends ChangeNotifier {
 
   AppState() {
     _serverService = ServerService(_smsService, 
-      port: StorageService.port
+      port: 3001
     );
 
     _listenToLogs();
@@ -70,7 +70,7 @@ class AppState extends ChangeNotifier {
   // Getters
   List<LogEntry> get logs => _logs;
   bool get isServerRunning => _serverService.isRunning;
-  int get port => _serverService.port;
+  int get port => 3001;
   String? get localIp => _localIp;
   String get publicUrl => StorageService.tunnelUrl;
   String get syncUrl => StorageService.syncUrl;
@@ -256,8 +256,8 @@ class AppState extends ChangeNotifier {
   }
 
   void updatePort(int port) {
-    StorageService.port = port;
-    _serverService.updateSettings(port: port);
+    StorageService.port = 3001;
+    _serverService.updateSettings(port: 3001);
     notifyListeners();
   }
   

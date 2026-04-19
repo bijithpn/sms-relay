@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { X, Settings, LogOut } from 'lucide-react';
-import { NAV_ITEMS } from '../lib/constants';
-import { useUIStore } from '../store/useUIStore';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { X, Settings, LogOut } from "lucide-react";
+import { NAV_ITEMS } from "../lib/constants";
+import { useUIStore } from "../store/useUIStore";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -24,9 +24,13 @@ export const Sidebar = () => {
 
   const sidebarClasses = cn(
     "fixed inset-y-0 left-0 z-50 w-64 bg-mistral-black text-white transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",
-    mounted && (isMobileNavOpen || (typeof window !== 'undefined' && window.innerWidth >= 1024 && isSidebarOpen))
+    mounted &&
+      (isMobileNavOpen ||
+        (typeof window !== "undefined" &&
+          window.innerWidth >= 1024 &&
+          isSidebarOpen))
       ? "translate-x-0"
-      : "-translate-x-full"
+      : "-translate-x-full",
   );
 
   return (
@@ -42,7 +46,9 @@ export const Sidebar = () => {
       <aside className={sidebarClasses}>
         <div className="h-full flex flex-col p-4">
           <div className="flex items-center justify-between mb-8 px-2">
-            <div className="text-xl font-normal uppercase tracking-widest">Sms Relay</div>
+            <div className="text-xl font-normal uppercase tracking-widest">
+              Sms Relay
+            </div>
             <button
               onClick={closeMobileNav}
               className="lg:hidden p-1 hover:bg-white/10 rounded-none"
@@ -63,7 +69,7 @@ export const Sidebar = () => {
                     "flex items-center gap-3 px-3 py-2 rounded-none transition-colors text-sm font-normal",
                     isActive
                       ? "bg-mistral-orange text-white"
-                      : "text-white/60 hover:bg-white/10 hover:text-white"
+                      : "text-white/60 hover:bg-white/10 hover:text-white",
                   )}
                 >
                   <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />

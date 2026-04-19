@@ -78,7 +78,13 @@ class ServerService {
     });
 
     final handler = Pipeline()
-        .addMiddleware(logRequests())
+        .addMiddleware((innerHandler) {
+          return (request) async {
+            // Log manually without using shelf's built-in logRequests which uses raw print()
+            // This prevents "OS Error: The pipe is being closed, errno = 232" on Windows
+            return await innerHandler(request);
+          };
+        })
         .addMiddleware(_corsMiddleware()) // Enable CORS for Web Browsers
         .addHandler((Request request) {
       if (request.method == 'OPTIONS') {

@@ -1,4 +1,4 @@
-import { Device, SMSTask } from '@sms-relay/types';
+import { Device, SMSTask } from "@sms-relay/types";
 
 export interface RoutingStrategy {
   name: string;

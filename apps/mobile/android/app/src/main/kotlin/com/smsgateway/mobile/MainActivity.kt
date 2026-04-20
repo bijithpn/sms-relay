@@ -32,8 +32,12 @@ class MainActivity : FlutterActivity() {
                 val id = call.argument<String>("id")
 
                 if (number != null && message != null && id != null) {
-                    sendSMS(number, message, id)
-                    result.success(true)
+                    try {
+                        sendSMS(number, message, id)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("SMS_FAILED", e.message, null)
+                    }
                 } else {
                     result.error("INVALID_ARGUMENTS", "Number, message, or ID is null", null)
                 }
@@ -117,6 +121,7 @@ class MainActivity : FlutterActivity() {
             }
         } catch (e: Exception) {
             eventSink?.success(mapOf("id" to id, "status" to "failed_to_send", "type" to "sent_report"))
+            throw e
         }
     }
 }

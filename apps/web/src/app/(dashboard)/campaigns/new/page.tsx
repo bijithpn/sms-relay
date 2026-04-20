@@ -19,6 +19,7 @@ import { WarningBanner } from "../../../../components/ui/WarningBanner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient } from "../../../../lib/api";
+import { useTemplates, useRecipients } from "../../../../hooks/useApi";
 
 export default function NewCampaignPage() {
   const [message, setMessage] = useState("");
@@ -28,6 +29,8 @@ export default function NewCampaignPage() {
   const [confirmedAuthorized, setConfirmedAuthorized] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { data: templates } = useTemplates();
+  const { data: savedRecipients } = useRecipients();
 
   const characterCount = message.length;
   const segments = Math.ceil(characterCount / 160) || 0;
@@ -113,13 +116,16 @@ export default function NewCampaignPage() {
                   placeholder="Enter your test message here..."
                   className="w-full h-32 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" className="text-xs py-1">
-                    Insert Variable
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-xs py-1">
-                    Select Template
-                  </Button>
+                <div className="flex flex-wrap gap-2">
+                  {templates?.map((t: any) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setMessage(t.content)}
+                      className="px-2 py-1 bg-blue-50 border border-blue-100 text-[10px] text-blue-700 rounded hover:bg-blue-600 hover:text-white transition-colors"
+                    >
+                      Use "{t.name}"
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -137,6 +143,22 @@ export default function NewCampaignPage() {
                   placeholder="Enter phone numbers separated by commas or spaces..."
                   className="w-full h-24 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {savedRecipients?.map((r: any) => (
+                    <button
+                      key={r.id}
+                      onClick={() => {
+                        const list = recipients.split(/[\s,]+/).filter(Boolean);
+                        if (!list.includes(r.phoneNumber)) {
+                          setRecipients(recipients ? `${recipients}, ${r.phoneNumber}` : r.phoneNumber);
+                        }
+                      }}
+                      className="px-2 py-1 bg-slate-100 border border-slate-200 text-[10px] rounded hover:bg-blue-500 hover:text-white transition-colors"
+                    >
+                      + {r.name}
+                    </button>
+                  ))}
+                </div>
                 <p className="text-[10px] text-slate-400">
                   Example: +919876543210, +1234567890
                 </p>

@@ -22,8 +22,8 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mistral-orange"></div>
       </div>
     );
   }
@@ -43,8 +43,8 @@ export default function Dashboard() {
       header: "Recipient",
       accessor: (task: any) => (
         <div className="flex flex-col">
-          <span className="font-bold text-slate-900">{task.recipient}</span>
-          <span className="text-[10px] text-slate-400 font-mono">
+          <span className="font-bold text-mistral-black">{task.recipient}</span>
+          <span className="text-[10px] text-mistral-black/40 font-mono">
             {task.id.slice(0, 8)}
           </span>
         </div>
@@ -53,7 +53,7 @@ export default function Dashboard() {
     {
       header: "Message",
       accessor: (task: any) => (
-        <p className="max-w-xs truncate text-slate-500 italic">
+        <p className="max-w-xs truncate text-mistral-black/60 italic">
           "{task.message}"
         </p>
       ),
@@ -66,7 +66,7 @@ export default function Dashboard() {
             <Smartphone size={10} /> {task.device.phoneNumber || "Node"}
           </Badge>
         ) : (
-          <span className="text-slate-400 text-xs">-</span>
+          <span className="text-mistral-black/40 text-xs">-</span>
         ),
     },
     {
@@ -79,19 +79,26 @@ export default function Dashboard() {
           FAILED: "error",
         };
         return (
-          <Badge
-            variant={variants[task.status] || "default"}
-            className="text-[10px] font-bold"
-          >
-            {task.status}
-          </Badge>
+          <div className="flex flex-col gap-1">
+            <Badge
+              variant={variants[task.status] || "default"}
+              className="text-[10px] font-bold w-fit"
+            >
+              {task.status}
+            </Badge>
+            {task.status === 'FAILED' && task.failureReason && (
+              <span className="text-[9px] text-rose-500 font-medium max-w-[100px] truncate leading-tight" title={task.failureReason}>
+                {task.failureReason}
+              </span>
+            )}
+          </div>
         );
       },
     },
     {
       header: "Time",
       accessor: (task: any) => (
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-mistral-black/40">
           {new Date(task.createdAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",

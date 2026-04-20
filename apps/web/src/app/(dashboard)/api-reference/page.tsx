@@ -20,19 +20,8 @@ export default function ApiReferencePage() {
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    // Suppress Swagger UI lifecycle warnings in React 19 Strict Mode
-    const originalError = console.error;
-    console.error = (...args) => {
-      if (
-        args[0]?.includes?.("UNSAFE_componentWillReceiveProps") &&
-        args[0]?.includes?.("ModelCollapse")
-      ) {
-        return;
-      }
-      originalError.apply(console, args);
-    };
-
-    fetch("http://localhost:3001/api/docs-json")
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+    fetch(`${baseUrl}/api/docs-json`)
       .then((res) => {
         if (!res.ok) throw new Error("API is not reachable");
         return res.json();
@@ -41,13 +30,9 @@ export default function ApiReferencePage() {
       .catch((err) => {
         console.error("Failed to fetch swagger spec:", err);
         setError(
-          "Could not connect to the API. Make sure the backend is running at http://localhost:3001",
+          "Could not connect to the API. Make sure the backend server is running and accessible.",
         );
       });
-
-    return () => {
-      console.error = originalError;
-    };
   }, []);
 
   return (

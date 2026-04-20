@@ -9,19 +9,16 @@ import {
   Code2,
   SmartphoneNfc,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Campaigns", href: "/campaigns", icon: Send },
-  { label: "Rate Limits", href: "/rate-limits", icon: Activity },
-  { label: "Templates", href: "/templates", icon: FileText },
-  { label: "Recipients", href: "/recipients", icon: Users },
-  { label: "Connect Phone", href: "/connect-phone", icon: SmartphoneNfc },
-  { label: "OTP Service", href: "/otp", icon: ShieldCheck },
+  { label: "SMS Logs", href: "/campaigns", icon: Send },
+  { label: "Gateways", href: "/connect-phone", icon: SmartphoneNfc },
+  { label: "OTP Console", href: "/otp", icon: ShieldCheck },
   { label: "API Reference", href: "/api-reference", icon: Code2 },
-  { label: "Alerts", href: "/alerts", icon: Bell },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Recipients", href: "/recipients", icon: Users },
 ];
 
 export const SECURITY_NOTICE =

@@ -46,8 +46,8 @@ export const Sidebar = () => {
       <aside className={sidebarClasses}>
         <div className="h-full flex flex-col p-4">
           <div className="flex items-center justify-between mb-8 px-2">
-            <div className="text-xl font-normal uppercase tracking-widest">
-              Sms Relay
+            <div className="text-xl font-black uppercase tracking-billboard text-mistral-orange">
+              SMS RELAY
             </div>
             <button
               onClick={closeMobileNav}
@@ -78,6 +78,19 @@ export const Sidebar = () => {
               );
             })}
           </nav>
+
+          <div className="mt-auto pt-4 border-t border-white/10">
+            <Link
+              href="/settings"
+              className={cn(
+                "flex w-full items-center gap-3 px-3 py-2 rounded-none transition-colors text-sm font-normal text-white/40 hover:bg-white/10 hover:text-white",
+                pathname === "/settings" && "text-white bg-white/5"
+              )}
+            >
+              <Settings size={18} />
+              Settings
+            </Link>
+          </div>
         </div>
       </aside>
     </>

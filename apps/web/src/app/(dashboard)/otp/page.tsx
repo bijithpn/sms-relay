@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { PageHeader } from "../../../components/PageHeader";
 import { Card, CardContent } from "../../../components/ui/Card";
+import { apiClient } from "../../../lib/api";
+import { useRecipients } from "../../../hooks/useApi";
+import { toast } from "react-hot-toast";
 
 export default function OtpServicePage() {
   const [phoneNumber, setPhoneNumber] = React.useState("");
@@ -22,28 +25,55 @@ export default function OtpServicePage() {
     message: string;
   } | null>(null);
   const [isVerifying, setIsVerifying] = React.useState(false);
+  const [taskStatus, setTaskStatus] = React.useState<string | null>(null);
+  const [isMounted, setIsMounted] = React.useState(false);
+  const { data: recipients } = useRecipients();
+
+  const isTaskActive = taskStatus === "PENDING" || taskStatus === "QUEUED";
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const generateOtp = async () => {
     if (!phoneNumber) return;
     setIsGenerating(true);
     setOtp(null);
     try {
-      const res = await fetch("http://localhost:3001/api/otp/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: phoneNumber,
-          length: Number(length),
-        }),
+      const data = await apiClient.post("/otp/generate", {
+        phoneNumber: phoneNumber,
+        length: Number(length),
       });
-      const data = await res.json();
-      if (data.success) {
-        setOtp(data.otp);
+      if (data.success && data.taskId) {
+        toast.success("OTP request accepted");
+        setTaskStatus("PENDING");
+        
+        // Poll for task status
+        let attempts = 0;
+        const interval = setInterval(async () => {
+          attempts++;
+          try {
+            const task = await apiClient.get(`/tasks/${data.taskId}`);
+            setTaskStatus(task.status);
+            if (task.status === "SENT" || task.status === "DELIVERED") {
+              clearInterval(interval);
+              if (task.status === "DELIVERED") toast.success("OTP delivered to device");
+            } else if (task.status === "FAILED") {
+              clearInterval(interval);
+              toast.error("SMS dispatch failed. Check phone connection.");
+            } else if (attempts > 30) {
+              clearInterval(interval);
+              setTaskStatus("TIMEOUT");
+            }
+          } catch (e) {
+            clearInterval(interval);
+          }
+        }, 1500);
       } else {
-        alert(data.message || "Failed to generate OTP");
+        toast.error(data.message || "Failed to generate OTP");
       }
-    } catch (error) {
-      console.error("Failed to generate OTP:", error);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate OTP");
     } finally {
       setIsGenerating(false);
     }
@@ -54,29 +84,29 @@ export default function OtpServicePage() {
     setIsVerifying(true);
     setVerificationResult(null);
     try {
-      const res = await fetch("http://localhost:3001/api/otp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: phoneNumber, code: verifyCode }),
+      const data = await apiClient.post("/otp/verify", { 
+        phoneNumber: phoneNumber, 
+        code: verifyCode 
       });
-      const data = await res.json();
       setVerificationResult({
         success: data.success || false,
-        message:
-          data.message ||
-          (res.status === 400
-            ? "Invalid or expired OTP"
-            : "Verification failed"),
+        message: data.message || "Verified successfully",
       });
-    } catch (error) {
+      if (data.success) toast.success("Verification Successful");
+    } catch (error: any) {
       setVerificationResult({
         success: false,
-        message: "Could not connect to service",
+        message: error.message || "Verification failed",
       });
+      toast.error("Verification Failed");
     } finally {
       setIsVerifying(false);
     }
   };
+
+  if (!isMounted) {
+    return <div className="flex flex-col min-h-full bg-warm-ivory" />;
+  }
 
   return (
     <div className="flex flex-col min-h-full bg-warm-ivory">
@@ -115,6 +145,29 @@ export default function OtpServicePage() {
                   Must include country code. Code will be sent from your phone
                   plan.
                 </p>
+
+                {recipients && recipients.length > 0 && (
+                  <div className="pt-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-mistral-black/40 block mb-2">
+                      Quick Select Recipient
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {recipients.slice(0, 6).map((r: any) => (
+                        <button
+                          key={r.id}
+                          onClick={() => setPhoneNumber(r.phoneNumber)}
+                          className={`px-3 py-1.5 border text-[10px] font-bold uppercase tracking-wider transition-all ${
+                            phoneNumber === r.phoneNumber
+                              ? "bg-mistral-orange border-mistral-orange text-white"
+                              : "bg-cream border-block-gold text-mistral-black/60 hover:border-mistral-orange hover:text-mistral-orange"
+                          }`}
+                        >
+                          {r.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -136,8 +189,8 @@ export default function OtpServicePage() {
 
               <button
                 onClick={generateOtp}
-                disabled={isGenerating || !phoneNumber}
-                className="w-full py-3 bg-mistral-orange text-white font-bold uppercase tracking-widest hover:bg-mistral-flame disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                disabled={isGenerating || !phoneNumber || isTaskActive}
+                className="w-full py-3 bg-mistral-orange text-white font-bold uppercase tracking-widest hover:bg-mistral-flame disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
                 {isGenerating ? (
                   <RefreshCw className="animate-spin" size={18} />
@@ -145,21 +198,50 @@ export default function OtpServicePage() {
                   "Send OTP via SMS"
                 )}
               </button>
+
+              {taskStatus && (
+                <div className={`p-4 flex items-center justify-between border ${
+                  taskStatus === 'SENT' || taskStatus === 'DELIVERED' 
+                    ? 'bg-green-50 border-green-100 text-green-700' 
+                    : taskStatus === 'FAILED' || taskStatus === 'TIMEOUT'
+                      ? 'bg-red-50 border-red-100 text-red-700'
+                      : 'bg-blue-50 border-blue-100 text-blue-700'
+                }`}>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      {taskStatus === 'PENDING' || taskStatus === 'QUEUED' ? (
+                        <RefreshCw className="animate-spin" size={16} />
+                      ) : taskStatus === 'SENT' || taskStatus === 'DELIVERED' ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <AlertCircle size={16} />
+                      )}
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        Status: {taskStatus}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-medium opacity-70 italic">
+                        {taskStatus === 'PENDING' ? 'Waiting for mobile node...' : 
+                        taskStatus === 'QUEUED' ? 'Device accepted request' :
+                        taskStatus === 'SENT' ? 'In transit to carrier' :
+                        taskStatus === 'DELIVERED' ? 'Delivery confirmed' : 
+                        taskStatus === 'FAILED' ? 'Delivery error occurred' : 'Wait for update'}
+                      </span>
+                      {!isTaskActive && (
+                        <button 
+                          onClick={() => setTaskStatus(null)}
+                          className="text-[9px] underline uppercase tracking-tighter hover:text-mistral-orange"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {otp && (
-              <div className="p-6 bg-cream border border-bright-yellow text-center space-y-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-mistral-black/40">
-                  Reference OTP Code
-                </span>
-                <div className="text-4xl font-mono font-bold tracking-[0.5em] text-mistral-black ml-[0.5em]">
-                  {otp}
-                </div>
-                <p className="text-[10px] text-mistral-black/60 italic">
-                  Valid for 10 minutes
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -187,13 +269,14 @@ export default function OtpServicePage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-mistral-black/60">
-                  Enter Verification Code
+                  Enter Verification Code ({length}-digits)
                 </label>
                 <input
                   type="text"
                   value={verifyCode}
-                  onChange={(e) => setVerifyCode(e.target.value)}
-                  placeholder="6-digit code"
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, length))}
+                  placeholder={`${length}-digit code`}
+                  maxLength={length}
                   className="w-full px-4 py-3 bg-warm-ivory border border-block-gold outline-none focus:border-mistral-orange transition-colors"
                 />
               </div>

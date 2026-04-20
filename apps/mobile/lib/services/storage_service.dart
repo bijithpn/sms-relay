@@ -1,5 +1,4 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import '../core/constants.dart';
 
 class StorageService {
   static const String settingsBoxName = 'settings';
@@ -17,15 +16,9 @@ class StorageService {
     await settingsBox.clear();
   }
 
-  static int get port => settingsBox.get('port', defaultValue: int.parse(AppConstants.defaultPort));
-  static set port(int value) => settingsBox.put('port', value);
-  
-  static String get tunnelUrl => settingsBox.get('tunnelUrl', defaultValue: '');
-  static set tunnelUrl(String value) => settingsBox.put('tunnelUrl', value);
-
   static String get syncUrl => settingsBox.get('syncUrl', defaultValue: '');
   static set syncUrl(String value) => settingsBox.put('syncUrl', value);
 
-  static bool get autoSync => settingsBox.get('autoSync', defaultValue: false);
-  static set autoSync(bool value) => settingsBox.put('autoSync', value);
+  static String get adminSecret => settingsBox.get('adminSecret', defaultValue: '');
+  static set adminSecret(String value) => settingsBox.put('adminSecret', value);
 }

@@ -32,16 +32,16 @@ class SmsService {
     });
   }
 
-  Future<String> sendSms(String number, String message) async {
-    final id = const Uuid().v4().substring(0, 8);
+  Future<String> sendSms(String number, String message, {String? id}) async {
+    final effectiveId = id ?? const Uuid().v4().substring(0, 8);
     try {
-      AppLogger.info('Queuing SMS to $number: $message (ID: $id)');
+      AppLogger.info('Queuing SMS to $number: $message (ID: $effectiveId)');
       await _methodChannel.invokeMethod('sendSms', {
         'number': number,
         'message': message,
-        'id': id,
+        'id': effectiveId,
       });
-      return id;
+      return effectiveId;
     } on PlatformException catch (e) {
       AppLogger.error('Failed to trigger SMS: ${e.message}');
       rethrow;

@@ -1,120 +1,88 @@
-# 📡 Decentralized SMS Relay Network
+# 📡 SMS RELAY (Private Gateway)
 
-A consumer-powered telecom layer that transforms Android devices into a distributed SMS messaging network. This platform allows businesses to send OTPs and marketing messages cheaply by routing them through real user SIM plans rather than centralized gateways.
+A high-performance, self-hosted SMS and OTP relay network that transforms standard Android devices into a private, secure, and infinitely scalable telecom layer. Designed for developers who need complete control over their messaging infrastructure without the per-message costs of commercial providers.
 
-## 🏗 Architecture Overview
-
-This project is built as a **Turborepo Monorepo** to ensure strict type safety and shared logic across the entire stack.
-
-- **`apps/web`**: Next.js Dashboard for network orchestration and user earnings.
-- **`apps/mobile`**: React Native Android app (the "Node") that handles native SMS sending.
-- **`services/api`**: NestJS Core API for auth, device management, and persistence.
-- **`services/router`**: The "Brain" - assigns SMS tasks to the best available device using a strategy pattern.
-- **`services/worker`**: The "Muscle" - BullMQ based worker that handles retries and delivery tracking.
-- **`packages/`**: Shared types, configurations, and UI components.
+![Stack](https://img.shields.io/badge/Stack-Next.js%20|%20NestJS%20|%20Flutter-1f1f1f?style=flat-square)
 
 ---
 
-## 🚀 Getting Started
+## ✨ Core Features
 
-### 1. Prerequisites
-- **Node.js 20+**
-- **pnpm** (`npm install -g pnpm`)
-- **Docker & Docker Compose** (Required for Redis and PostgreSQL)
-- **Android Studio / Emulator** (For mobile node testing)
+### 🛡️ Spam Guard (Node Security)
+- **Daily SMS Quotas**: Prevent SIM cards from being flagged by carriers by setting strict daily limits per mobile node.
+- **Hourly Recipient Limits**: Block automated accounts from spamming your gateway with rate-limiting at the recipient level.
+- **Global Toggle**: Instantly enable or disable protection across your entire network.
 
-### 2. Installation
-Clone the repository and install dependencies from the root:
+### 🔐 0-Wait OTP Service
+- **Dynamic Lengths**: Generate 4-8 digit OTP codes with custom expiration windows.
+- **Device-Aware Routing**: Automatically routes OTPs to the most reliable/online node in your network.
+- **SHA-256 Hashing**: Verification codes are never stored in plain text, ensuring zero leak risk.
+
+### 📱 High-Fidelity Mobile Nodes
+- **Native Flutter Integration**: Ultra-low latency communication between the API and Android hardware.
+- **Heartbeat Monitoring**: Real-time health reporting (Battery, Signal Strength, Online status).
+- **QR Pairing**: Zero-configuration setup — scan a code from the dashboard to instantly register a node.
+
+### 🎨 Premium Mistral-Style Dashboard
+- **Warm Ivory UI**: A sophisticated, high-contrast dashboard inspired by frontier AI design languages.
+- **Billboard Typography**: High-impact headlines and architectural geometry for a production-ready feel.
+- **Real-time Monitoring**: Live SSE streams of delivery statuses and system health.
+
+---
+
+## 🏗 System Architecture
+
+This project is managed as a **Turborepo Monorepo** for unified development and deployment:
+
+| Service | Technology | Role |
+| :--- | :--- | :--- |
+| **`apps/web`** | Next.js (App Router) | Multi-node command center & settings. |
+| **`apps/mobile`**| Flutter | Native Android SMS engine & health reporter. |
+| **`services/api`** | NestJS | Task orchestration, rate-limiting & device life-cycle. |
+| **`packages/ui`** | Tailwind / Vanilla CSS | Shared Mistral-inspired design system tokens. |
+
+---
+
+## 🚀 Quick Setup
+
+### 1. Requirements
+- **Node.js 20+** and **pnpm**
+- **Docker** (for PostgreSQL)
+- **An Android Device** (Physical)
+- **Ngrok/LocalTunnel** (If hosting behind a symmetric NAT)
+
+### 2. Deployment
 
 ```bash
+# 1. Clone well and install
 pnpm install
-```
 
-### 3. Easiest Local Start
-Run one command from the repo root:
+# 2. Environment Setup
+# Copy services/api/.env.example to .env and set your ADMIN_SECRET
+# Copy apps/web/.env.example to .env
 
-```bash
-pnpm easy
-```
+# 3. Start Infrastructure
+docker-compose up -d
 
-This command installs dependencies when needed, starts PostgreSQL and Redis with Docker, waits for the database, clears old dev servers from ports `3000` and `3001`, and then starts the API and web dashboard.
-
-Open:
-- **Web Dashboard**: http://localhost:3000
-- **API Health Check**: http://localhost:3001/system/health
-
-If something does not work, run:
-
-```bash
-pnpm doctor
-```
-
-If you see `EADDRINUSE` or `address already in use`, stop the old local dev servers and start again:
-
-```bash
-pnpm stop
-pnpm easy
-```
-
-### 4. Manual Infrastructure Start
-The project requires Redis (for the job queue) and PostgreSQL (for the database). Use the root `docker-compose.yml` to launch them:
-
-```bash
-# Start Redis and PostgreSQL
-docker-compose up -d redis postgres
-```
-
-**Note:** If you see `ECONNREFUSED 127.0.0.1:6379` in your logs, it means the Redis server is not running. Ensure Docker is started and the containers are healthy.
-
-### 5. Running the Development Environment
-Use Turborepo to launch the API, Router, and Worker services simultaneously:
-
-```bash
-# From the root directory
+# 4. Launch Development Environment
 pnpm dev
 ```
 
-The services will be available at:
-- **Web Dashboard**: http://localhost:3000 (or as assigned by Next.js)
-- **API**: http://localhost:3001
+### 3. Connection
+1. Access the dashboard at `http://localhost:3000`.
+2. Navigate to **Gateways** and scan the QR code using the **SMS Relay Mobile App**.
+3. Ensure your phone has a valid SIM card and "Send SMS" permissions granted.
 
 ---
 
-## 📱 Mobile Node Setup (Android)
+## 🔒 Security Model
 
-Since this is a telecom-adjacent product, the mobile app requires specific Android permissions to function:
-
-1. **Build the app**: Use the React Native CLI to build for Android.
-2. **Grant Permissions**:
-   - `SEND_SMS`: Required to send the messages.
-   - `READ_PHONE_STATE`: Required to identify the SIM operator and quota.
-3. **Connect to API**: Ensure the device is on the same network as your `services/api` or update the `API_URL` in `SmsNodeService.ts`.
+We use a **Headless Secret** architecture:
+- **Shared Secret**: Access is governed by `X-Admin-Secret`. No user databases or password resets.
+- **Hashed Persistence**: Only hashes of verification codes touch the database.
+- **Private Discovery**: Nodes use local publicUrls or encrypted tunnels for communication.
 
 ---
 
-## ⚙️ Technical Deep Dive
-
-### SMS Routing Logic
-The system uses a **Strategy Pattern** to assign tasks:
-- **Least Loaded Strategy**: Picks the device with the highest remaining SMS quota.
-- **Geo-Match Strategy**: (Future) Matches devices based on the target phone number's region.
-
-### Reliability Flow
-`Job Creation` $\rightarrow$ `BullMQ Queue` $\rightarrow$ `Worker` $\rightarrow$ `Routing Engine` $\rightarrow$ `WebSocket Dispatch` $\rightarrow$ `Android Node` $\rightarrow$ `Delivery Report` $\rightarrow$ `Wallet Credit`.
-
----
-
-## 🛠 Tech Stack
-
-| Layer | Technology |
-| :--- | :--- |
-| **Frontend** | Next.js, Tailwind CSS, Zustand, TanStack Query |
-| **Mobile** | React Native, Socket.io-client |
-| **Backend** | NestJS, TypeORM, PostgreSQL, BullMQ |
-| **Cache/Queue** | Redis |
-| **Infrastructure** | Docker, Turborepo, pnpm |
-
-## ⚠️ Constraints & Compliance
-- **Android Only**: iOS does not allow programmatic SMS sending.
-- **SDR (Spam Detection)**: The system includes rate-limiting and device rotation to prevent SIM bans.
-- **Compliance**: Designed to be integrated with DLT registration (India) and other regional telecom regulations.
+## ⚖️ License
+MIT - Built for the community.

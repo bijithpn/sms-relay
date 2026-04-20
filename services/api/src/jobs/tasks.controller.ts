@@ -1,10 +1,12 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, ParseUUIDPipe, Sse, MessageEvent, OnModuleInit, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { SpamPolicy } from '../entities/spam_policy.entity';
 import { Observable, interval, switchMap, map, from } from 'rxjs';
 import { SMSTask } from '../entities/sms_task.entity';
 import { SMSTaskStatus, DeviceStatus } from '../entities/enums';
 import { Device } from '../entities/device.entity';
+import { TasksService } from './tasks.service';
 
 type CreateTaskBody = {
   recipient?: string;
@@ -24,7 +26,27 @@ export class TasksController implements OnModuleInit {
     private tasksRepository: Repository<SMSTask>,
     @InjectRepository(Device)
     private devicesRepository: Repository<Device>,
+    @InjectRepository(SpamPolicy)
+    private spamPolicyRepository: Repository<SpamPolicy>,
+    private readonly tasksService: TasksService,
   ) {}
+
+  @Get('spam-policy')
+  async getPolicy() {
+    let policy = await this.spamPolicyRepository.findOne({ where: { type: 'GLOBAL' } });
+    if (!policy) {
+      policy = this.spamPolicyRepository.create({ type: 'GLOBAL' });
+      await this.spamPolicyRepository.save(policy);
+    }
+    return policy;
+  }
+
+  @Patch('spam-policy')
+  async updatePolicy(@Body() update: Partial<SpamPolicy>) {
+    const policy = await this.getPolicy();
+    await this.spamPolicyRepository.update(policy.id, update);
+    return this.getPolicy();
+  }
 
   onModuleInit() {
     // Start background queue processor
@@ -58,9 +80,10 @@ export class TasksController implements OnModuleInit {
           task.device = device;
         }
         task.retryCount = (task.retryCount || 0) + 1;
+        task.status = SMSTaskStatus.QUEUED;
         await this.tasksRepository.save(task);
 
-        await this.sendToDevice(device, task);
+        await this.tasksService.sendToDevice(device, task);
       }
     } catch (e) {
       console.error('[Queue] Error processing tasks:', e);
@@ -82,7 +105,7 @@ export class TasksController implements OnModuleInit {
     const total = await this.tasksRepository.count();
     const delivered = await this.tasksRepository.count({ where: { status: SMSTaskStatus.DELIVERED } });
     const failed = await this.tasksRepository.count({ where: { status: SMSTaskStatus.FAILED } });
-    const pending = await this.tasksRepository.count({ where: { status: SMSTaskStatus.PENDING } });
+    const pending = await this.tasksRepository.count({ where: { status: In([SMSTaskStatus.PENDING, SMSTaskStatus.QUEUED]) } });
     
     // Get last 10 tasks for the table
     const recentTasks = await this.tasksRepository.find({
@@ -167,6 +190,9 @@ export class TasksController implements OnModuleInit {
       throw new BadRequestException('No active mobile nodes are currently online. Please check your Flutter app sync status.');
     }
 
+    // 1. Check Spam Guard
+    await this.tasksService.validateSpamLimits(recipient, device?.id);
+
     const newTask = this.tasksRepository.create({
       recipient,
       message,
@@ -179,7 +205,7 @@ export class TasksController implements OnModuleInit {
     // If a device is online and has a publicUrl, try to send it immediately
     if (device && device.publicUrl) {
       console.log(`Pushing task ${savedTask.id} to device ${device.id} at ${device.publicUrl}`);
-      this.sendToDevice(device, savedTask).catch(err => {
+      this.tasksService.sendToDevice(device, savedTask).catch(err => {
         console.error(`Failed to push task to device: ${err.message}`);
       });
     } else {
@@ -187,43 +213,6 @@ export class TasksController implements OnModuleInit {
     }
 
     return savedTask;
-  }
-
-  private async sendToDevice(device: Device, task: SMSTask) {
-    try {
-      const url = `${device.publicUrl.replace(/\/$/, '')}/send-sms`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: JSON.stringify({
-          number: task.recipient,
-          message: task.message,
-        }),
-      });
-
-      if (response.ok) {
-        await this.tasksRepository.update(task.id, { status: SMSTaskStatus.SENT });
-      } else {
-        const errorText = await response.text();
-        console.error(`Device returned error for task ${task.id}: ${errorText.slice(0, 100)}...`);
-        const nextStatus = task.retryCount >= 24 ? SMSTaskStatus.FAILED : SMSTaskStatus.PENDING;
-        await this.tasksRepository.update(task.id, { status: nextStatus });
-      }
-    } catch (e: any) {
-      // Don't clutter logs constantly for unreachable local IPs
-      const isLocal = device.publicUrl.includes('192.168') || device.publicUrl.includes('10.');
-      if (!isLocal) {
-        console.error(`Error sending task to device ${device.id}: ${e.message}`);
-      }
-      
-      // Allow up to 24 retries (approx 2 minutes of queue processing at 5s intervals)
-      // This gives devices sitting behind NAT time to poll for the pending tasks.
-      const nextStatus = task.retryCount >= 24 ? SMSTaskStatus.FAILED : SMSTaskStatus.PENDING;
-      await this.tasksRepository.update(task.id, { status: nextStatus });
-    }
   }
 
   @Post('bulk')
@@ -237,6 +226,10 @@ export class TasksController implements OnModuleInit {
     if (!message) {
       throw new BadRequestException('Message is required');
     }
+
+    // 1. Check Spam Guard for each recipient (Hourly only, since we don't have a device yet)
+    // We do this concurrently for speed
+    await Promise.all(recipients.map(r => this.tasksService.validateSpamLimits(r)));
 
     const tasks = this.tasksRepository.create(
       recipients.map((recipient) => ({
@@ -266,7 +259,7 @@ export class TasksController implements OnModuleInit {
   }
 
   @Patch(':id')
-  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() update: Partial<Pick<SMSTask, 'status' | 'retryCount' | 'jobId'>>) {
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() update: Partial<SMSTask>) {
     const allowedStatuses = Object.values(SMSTaskStatus);
     if (update.status && !allowedStatuses.includes(update.status)) {
       throw new BadRequestException('Invalid task status');

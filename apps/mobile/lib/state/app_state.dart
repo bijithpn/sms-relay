@@ -19,6 +19,8 @@ class AppState extends ChangeNotifier {
   Timer? _ipTimer;
   Timer? _syncTimer;
   Timer? _tasksTimer;
+  String? _phoneNumber;
+  String? _simOperator;
 
   AppState() {
     _serverService = ServerService(_smsService, 
@@ -28,19 +30,16 @@ class AppState extends ChangeNotifier {
     _listenToLogs();
     _checkPermissions();
     _refreshIp();
+    _listenToSmsStatus();
 
-    // Auto-sync on startup if enabled
+    // Sync on startup once
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (autoSync) syncWithBackend();
+      syncWithBackend();
     });
 
     _ipTimer = Timer.periodic(const Duration(seconds: 30), (_) => _refreshIp());
-    _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (autoSync) syncWithBackend(silent: true);
-    });
-    _tasksTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (autoSync && _serverService.isRunning) _pollPendingTasks();
-    });
+    _tasksTimer = Timer.periodic(const Duration(seconds: 10), (_) => _pollTasks());
+    _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) => syncWithBackend(silent: true));
   }
 
   @override
@@ -57,7 +56,10 @@ class AppState extends ChangeNotifier {
     try {
       await http.post(
         Uri.parse(syncUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': StorageService.adminSecret,
+        },
         body: json.encode({
           'gateway_id': 'flutter_sms_gateway',
           'status': 'offline',
@@ -72,9 +74,7 @@ class AppState extends ChangeNotifier {
   bool get isServerRunning => _serverService.isRunning;
   int get port => 3001;
   String? get localIp => _localIp;
-  String get publicUrl => StorageService.tunnelUrl;
   String get syncUrl => StorageService.syncUrl;
-  bool get autoSync => StorageService.autoSync;
   bool get isSyncing => _isSyncing;
   Map<Permission, PermissionStatus> get permissions => _permissions;
 
@@ -86,34 +86,6 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> _pollPendingTasks() async {
-    if (syncUrl.isEmpty) return;
-    try {
-      final apiUrl = syncUrl.replaceAll('/devices/sync', '');
-      final response = await http.get(Uri.parse('$apiUrl/tasks/pending')).timeout(const Duration(seconds: 3));
-      
-      if (response.statusCode == 200) {
-        final List<dynamic> tasks = json.decode(response.body);
-        if (tasks.isEmpty) return;
-        
-        List<String> sentIds = [];
-        for (final task in tasks) {
-           await _smsService.sendSms(task['recipient'], task['message']);
-           sentIds.add(task['id']);
-        }
-        
-        if (sentIds.isNotEmpty) {
-           await http.patch(
-             Uri.parse('$apiUrl/tasks/pending/mark-sent'),
-             headers: {'Content-Type': 'application/json'},
-             body: json.encode({'ids': sentIds})
-           );
-        }
-      }
-    } catch (_) {
-      // Ignore polling errors completely
-    }
-  }
 
   void _listenToLogs() {
     AppLogger.logs.listen((entry) {
@@ -138,11 +110,49 @@ class AppState extends ChangeNotifier {
     await _checkPermissions();
   }
 
+  void _listenToSmsStatus() {
+    _smsService.statusStream.listen((report) async {
+      final id = report['id'];
+      final status = report['status'];
+      final type = report['type'];
+
+      if (syncUrl.isEmpty || id == null) return;
+
+      // Extract API base URL from syncUrl (remove /devices/sync)
+      final apiUrl = syncUrl.replaceAll('/devices/sync', '');
+
+      String? taskStatus;
+      if (type == 'sent_report') {
+        taskStatus = (status == 'sent') ? 'SENT' : 'FAILED';
+      } else if (type == 'delivery_report') {
+        taskStatus = 'DELIVERED';
+      }
+
+      if (taskStatus != null) {
+        try {
+          await http.patch(
+            Uri.parse('$apiUrl/tasks/$id'),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-secret': StorageService.adminSecret,
+            },
+            body: json.encode({
+              'status': taskStatus,
+              if (taskStatus == 'FAILED') 'failureReason': status,
+            }),
+          );
+        } catch (e) {
+          AppLogger.error('Failed to notify backend of status update: $e');
+        }
+      }
+    });
+  }
+
   void handleQrResult(String code) {
     try {
       final data = json.decode(code);
       if (data['syncUrl'] != null) updateSyncUrl(data['syncUrl']);
-      if (data['port'] != null) updatePort(int.parse(data['port'].toString()));
+      if (data['adminSecret'] != null) StorageService.adminSecret = data['adminSecret'];
       AppLogger.success('Configuration updated via QR code');
       
       // Auto connect and start server
@@ -210,21 +220,21 @@ class AppState extends ChangeNotifier {
     try {
       AppLogger.info('Syncing status with backend: $syncUrl');
       
-      String effectivePublicUrl = publicUrl;
-      if (effectivePublicUrl.isEmpty && _localIp != null) {
-        effectivePublicUrl = 'http://$_localIp:$port';
-      }
+      final String effectiveUrl = 'http://$_localIp:3001';
       
       final response = await http.post(
         Uri.parse(syncUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': StorageService.adminSecret,
+        },
         body: json.encode({
           'gateway_id': 'flutter_sms_gateway',
-          'public_url': effectivePublicUrl,
-          'local_port': port,
+          'public_url': effectiveUrl,
           'status': isServerRunning ? 'online' : 'offline',
-          'phone_number': 'Mobile Node', 
-          'sim_operator': 'Flutter Gateway',
+          'phone_number': _phoneNumber ?? 'Mobile Node', 
+          'sim_operator': _simOperator ?? 'Flutter Gateway',
+          'capabilities': ['SMS', 'OTP'],
           'timestamp': DateTime.now().toIso8601String(),
         }),
       );
@@ -232,15 +242,6 @@ class AppState extends ChangeNotifier {
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!silent) AppLogger.success('Successfully synced with backend');
         
-        // Handle automatic updates from backend
-        try {
-          final data = json.decode(response.body);
-          if (data['port'] != null) updatePort(int.parse(data['port'].toString()));
-          if (data['public_url'] != null) updatePublicUrl(data['public_url']);
-          if (data['auto_sync'] != null) toggleAutoSync(data['auto_sync'] == true);
-        } catch (e) {
-          // Response might not be JSON or might not contain settings, ignore
-        }
         return true;
       } else {
         AppLogger.error('Backend sync failed: ${response.statusCode}');
@@ -255,25 +256,44 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void updatePort(int port) {
-    StorageService.port = 3001;
-    _serverService.updateSettings(port: 3001);
-    notifyListeners();
-  }
-  
-  void updatePublicUrl(String url) {
-    StorageService.tunnelUrl = url;
-    notifyListeners();
-    if (autoSync) syncWithBackend();
+  Future<void> _pollTasks() async {
+    if (syncUrl.isEmpty) return;
+
+    try {
+      final apiUrl = syncUrl.replaceAll('/devices/sync', '');
+      final response = await http.get(
+        Uri.parse('$apiUrl/tasks/pending'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': StorageService.adminSecret,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List tasks = json.decode(response.body);
+        if (tasks.isNotEmpty) {
+           AppLogger.info('Polled ${tasks.length} pending tasks');
+        }
+        
+        for (var task in tasks) {
+          final device = task['device'];
+          // Process if unassigned or assigned to this specific device
+          if (device == null || device['gatewayId'] == 'flutter_sms_gateway') {
+            await _smsService.sendSms(
+              task['recipient'], 
+              task['message'], 
+              id: task['id']
+            );
+          }
+        }
+      }
+    } catch (e) {
+      // Sliently skip polling errors
+    }
   }
 
   void updateSyncUrl(String url) {
     StorageService.syncUrl = url;
-    notifyListeners();
-  }
-
-  void toggleAutoSync(bool value) {
-    StorageService.autoSync = value;
     notifyListeners();
   }
 
@@ -296,9 +316,6 @@ class AppState extends ChangeNotifier {
 
   Future<void> resetSettings() async {
     await StorageService.clearAll();
-    _serverService.updateSettings(
-      port: StorageService.port,
-    );
     notifyListeners();
   }
 }

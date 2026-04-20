@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, BadRequestException, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, BadRequestException, ParseUUIDPipe, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from '../entities/device.entity';
@@ -6,6 +6,8 @@ import { DeviceStatus } from '../entities/enums';
 
 @Controller('devices')
 export class DevicesController {
+  private readonly logger = new Logger(DevicesController.name);
+
   constructor(
     @InjectRepository(Device)
     private devicesRepository: Repository<Device>,
@@ -13,17 +15,33 @@ export class DevicesController {
 
   @Get()
   async findAll() {
-    // Only return devices that are ONLINE and have been seen recently (last 1 min)
-    const now = new Date();
-    const activeThreshold = 1 * 60 * 1000;
-    
-    const devices = await this.devicesRepository.find({
-      where: { status: DeviceStatus.ONLINE },
-      order: { lastSeen: 'DESC' }
-    });
+    try {
+      this.logger.log('Fetching active devices...');
+      const activeThreshold = 60 * 1000; // 1 minute
+      const now = new Date();
+      
+      // Get all online devices - being explicit with status to avoid enum issues
+      const devices = await this.devicesRepository.find({
+        where: { status: DeviceStatus.ONLINE },
+        order: { lastSeen: 'DESC' }
+      });
 
-    // Filter out truly stale ones before returning
-    return devices.filter(device => (now.getTime() - new Date(device.lastSeen).getTime()) < activeThreshold);
+      this.logger.log(`Found ${devices.length} online devices in DB`);
+
+      // Filter in memory for safety with different DB date formats
+      const activeDevices = devices.filter(device => {
+        if (!device.lastSeen) return false;
+        const diff = now.getTime() - new Date(device.lastSeen).getTime();
+        return diff < activeThreshold;
+      });
+
+      this.logger.log(`Returning ${activeDevices.length} truly active devices`);
+      return activeDevices;
+    } catch (e: any) {
+      this.logger.error(`Devices findAll failed: ${e.message}`, e.stack);
+      // Return empty array instead of 500 if DB is briefly busy
+      return [];
+    }
   }
 
   @Post('sync')

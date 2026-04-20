@@ -74,7 +74,7 @@ export default function ConnectPhonePage() {
     cloudflare: {
       title: "Cloudflare",
       icon: <Cloud size={16} />,
-      command: "cloudflared tunnel --url http://localhost:3000",
+      command: "cloudflared tunnel --url http://sms-relay:3000",
       steps: [
         "Install Cloudflared and run the command above.",
         "Wait for the output to show a .trycloudflare.com URL.",
@@ -118,6 +118,16 @@ export default function ConnectPhonePage() {
   const syncUrl = useMemo(() => {
     return baseUrl ? `${baseUrl}/api/devices/sync` : "";
   }, [baseUrl]);
+
+  const qrPayload = useMemo(() => {
+    if (!mounted) return "";
+    const adminSecret = typeof window !== 'undefined' ? localStorage.getItem("admin_secret") : "";
+    return JSON.stringify({
+      syncUrl,
+      adminSecret,
+      port: 3001
+    });
+  }, [syncUrl, mounted]);
 
   const fetchDevices = async () => {
     setIsLoadingDevices(true);
@@ -247,7 +257,7 @@ export default function ConnectPhonePage() {
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 font-sans">
+    <div className="flex flex-col h-full bg-warm-ivory font-sans">
       <PageHeader
         title="Connect Phone"
         description="Sync your Flutter app to send SMS automatically via API."
@@ -266,7 +276,7 @@ export default function ConnectPhonePage() {
               <CardContent className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <label className="text-[10px] font-bold text-mistral-black/40 uppercase tracking-widest">
                       Base API URL
                     </label>
                     <Badge
@@ -279,10 +289,10 @@ export default function ConnectPhonePage() {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="e.g. http://192.168.1.5:3000"
+                      placeholder="e.g. http://sms-relay.local:3001"
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
-                      className="flex-1 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="flex-1 bg-cream/30 border border-block-gold/30 rounded-none px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-mistral-orange/30"
                     />
                     <Button
                       onClick={handleSave}
@@ -418,10 +428,10 @@ export default function ConnectPhonePage() {
                 Flutter App Sync
               </h3>
 
-              <div className="w-48 h-48 bg-white p-4 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-slate-100">
-                {syncUrl ? (
+              <div className="w-48 h-48 bg-cream/10 p-4 rounded-none flex items-center justify-center mb-6 shadow-golden-hour border border-block-gold/40">
+                {qrPayload ? (
                   <QRCode
-                    value={syncUrl}
+                    value={qrPayload}
                     size={160}
                     style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                     viewBox={`0 0 256 256`}

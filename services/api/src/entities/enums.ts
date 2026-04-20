@@ -1,8 +1,3 @@
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  USER = 'USER',
-}
-
 export enum DeviceStatus {
   ONLINE = 'ONLINE',
   OFFLINE = 'OFFLINE',
@@ -11,6 +6,7 @@ export enum DeviceStatus {
 
 export enum SMSTaskStatus {
   PENDING = 'PENDING',
+  QUEUED = 'QUEUED',
   SENT = 'SENT',
   DELIVERED = 'DELIVERED',
   FAILED = 'FAILED',

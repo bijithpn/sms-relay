@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
 enum LogType { server, request, success, error, info }
@@ -30,11 +29,14 @@ class AppLogger {
 
   static void log(String message, [LogType type = LogType.info]) {
     final entry = LogEntry(message, type);
-    _controller.add(entry);
-    
-    // Use debugPrint instead of print() as it handles large logs and Windows pipe 
-    // constraints (errno 232) much better by throttling output.
-    debugPrint('${entry.formattedTimestamp} ${entry.prefix} $message');
+    // Add to stream for in-app display
+    try {
+      if (!_controller.isClosed) {
+        _controller.add(entry);
+      }
+    } catch (_) {
+      // Ignore errors during logging to prevent crashes if pipes are closed
+    }
   }
   
   static void server(String message) => log(message, LogType.server);

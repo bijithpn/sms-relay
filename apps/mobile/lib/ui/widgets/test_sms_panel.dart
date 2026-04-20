@@ -95,6 +95,59 @@ class _TestSmsPanelState extends State<TestSmsPanel> {
     );
   }
 
+  Future<void> _showSaveRecipientDialog() async {
+    final number = _numberController.text.trim();
+    if (number.isEmpty) {
+      _showFeedback('Enter a number first', isError: true);
+      return;
+    }
+
+    final nameController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save Recipient'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(labelText: 'Recipient Name'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+              
+              Navigator.pop(context);
+              final state = context.read<AppState>();
+              final apiUrl = state.syncUrl.replaceAll('/devices/sync', '');
+              
+              try {
+                final response = await http.post(
+                  Uri.parse('$apiUrl/recipients'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: json.encode({'name': name, 'phoneNumber': number}),
+                );
+                
+                if (response.statusCode == 201) {
+                  _showFeedback('Recipient Saved!', isError: false);
+                  _fetchData();
+                } else {
+                  _showFeedback('Failed to save', isError: true);
+                }
+              } catch (e) {
+                _showFeedback('Error connecting to API', isError: true);
+              }
+            },
+            child: const Text('SAVE'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -148,16 +201,28 @@ class _TestSmsPanelState extends State<TestSmsPanel> {
               ),
               const SizedBox(height: 12),
             ],
-            TextField(
-              controller: _numberController,
-              style: const TextStyle(color: AppTheme.mistralBlack),
-              decoration: const InputDecoration(
-                labelText: 'Recipient Number',
-                labelStyle: TextStyle(color: Color(0xFF3C3C3C)),
-                hintText: '+91XXXXXXXXXX',
-                prefixIcon: Icon(Icons.phone_android, size: 20, color: AppTheme.mistralOrange),
-              ),
-              keyboardType: TextInputType.phone,
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _numberController,
+                    style: const TextStyle(color: AppTheme.mistralBlack),
+                    decoration: const InputDecoration(
+                      labelText: 'Recipient Number',
+                      labelStyle: TextStyle(color: Color(0xFF3C3C3C)),
+                      hintText: '+91XXXXXXXXXX',
+                      prefixIcon: Icon(Icons.phone_android, size: 20, color: AppTheme.mistralOrange),
+                    ),
+                    keyboardType: TextInputType.phone,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.person_add_alt_1, color: AppTheme.mistralOrange),
+                  onPressed: () => _showSaveRecipientDialog(),
+                  tooltip: 'Save to Recipients',
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             if (_templates.isNotEmpty) ...[

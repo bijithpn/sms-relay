@@ -25,6 +25,9 @@ export class SMSTask {
   @Column({ default: 0 })
   retryCount: number;
 
+  @Column({ nullable: true })
+  failureReason: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

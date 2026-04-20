@@ -18,16 +18,16 @@ export default function CampaignsPage() {
     refetch,
   } = useTasks(statusFilter || undefined);
 
-  if (isLoading && !tasks) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mistral-orange"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <div className="flex flex-col min-h-full bg-warm-ivory">
       <PageHeader
         title="SMS History"
         description="Monitor your SMS delivery logs, history, and status."
@@ -41,12 +41,12 @@ export default function CampaignsPage() {
       <div className="px-4 md:px-8 pb-8 space-y-6 mt-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between py-4 border-b">
-            <h2 className="text-lg font-bold text-slate-800">Message Logs</h2>
+            <h2 className="text-lg font-bold text-mistral-black uppercase tracking-tight">Message Logs</h2>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                <Filter size={14} className="text-slate-500" />
+              <div className="flex items-center gap-2 bg-cream/30 px-3 py-1.5 rounded-none border border-block-gold/40">
+                <Filter size={14} className="text-mistral-black/40" />
                 <select
-                  className="bg-transparent text-sm border-none outline-none focus:ring-0 text-slate-700"
+                  className="bg-transparent text-sm border-none outline-none focus:ring-0 text-mistral-black font-normal"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >

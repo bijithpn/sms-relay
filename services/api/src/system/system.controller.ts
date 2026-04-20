@@ -14,31 +14,44 @@ export class SystemController {
 
   @Get('health')
   async getHealth() {
-    const requiredTables = ['templates', 'sms_tasks', 'devices', 'users'];
-    const rows = await this.dataSource.query(
-      `
-        select table_name
-        from information_schema.tables
-        where table_schema = 'public'
-          and table_name = any($1)
-      `,
-      [requiredTables],
-    );
-    const existingTables = rows.map((row: { table_name: string }) => row.table_name);
-    const missingTables = requiredTables.filter((table) => !existingTables.includes(table));
+    if (!this.dataSource?.isInitialized) {
+      return {
+        api: 'online',
+        database: 'connecting',
+        message: 'Database is still initializing...'
+      };
+    }
 
-    return {
-      api: 'online',
-      database: this.dataSource.isInitialized ? 'connected' : 'disconnected',
-      synchronize: true,
-      tablesReady: missingTables.length === 0,
-      existingTables,
-      missingTables,
-      message:
-        missingTables.length === 0
-          ? 'API, database, and required tables are ready.'
-          : 'Database is connected, but some tables are missing. Restart the API so TypeORM synchronize can create them.',
-    };
+    try {
+      const requiredTables = ['templates', 'sms_tasks', 'devices', 'users', 'otps', 'recipients'];
+      // Use a simpler approach to check tables without raw SQL if possible
+      // but raw SQL is fine if we handle it correctly.
+      const rows = await this.dataSource.query(
+        'SELECT table_name FROM information_schema.tables WHERE table_schema = \'public\''
+      );
+      
+      const existingTables = rows.map((r: any) => r.table_name);
+      const missingTables = requiredTables.filter((table) => !existingTables.includes(table));
+
+      return {
+        api: 'online',
+        database: 'connected',
+        synchronize: true,
+        tablesReady: missingTables.length === 0,
+        existingTables,
+        missingTables,
+        message:
+          missingTables.length === 0
+            ? 'API and database are healthy.'
+            : `Missing tables: ${missingTables.join(', ')}. They will be created automatically on restart.`,
+      };
+    } catch (error: any) {
+      return {
+        api: 'online',
+        database: 'error',
+        message: `Status check failed: ${error.message}`,
+      };
+    }
   }
 
   @Get('ip')

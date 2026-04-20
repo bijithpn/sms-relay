@@ -4,7 +4,6 @@ import { Sidebar } from "../../components/Sidebar";
 import { MobileBottomNav } from "../../components/MobileBottomNav";
 import { SystemStatusBanner } from "../../components/SystemStatusBanner";
 import { useUIStore } from "../../store/useUIStore";
-
 export default function DashboardLayout({
   children,
 }: {

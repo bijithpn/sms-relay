@@ -9,10 +9,10 @@ import '../utils/logger.dart';
 class ServerService {
   final SmsService _smsService;
   HttpServer? _server;
-  int _port;
+  final int _port;
 
   ServerService(this._smsService, {int? port})
-      : _port = port ?? 8080;
+      : _port = 3001;
 
   bool get isRunning => _server != null;
   int get port => _port;
@@ -32,9 +32,6 @@ class ServerService {
     return null;
   }
 
-  void updateSettings({int? port}) {
-    if (port != null) _port = port;
-  }
 
   Future<void> start() async {
     if (_server != null) return;
@@ -48,7 +45,7 @@ class ServerService {
         final payload = await request.readAsString();
         final body = json.decode(payload);
         
-        final number = body['number'];
+        final number = body['recipient'] ?? body['number'];
         final message = body['message'];
 
         if (number == null || message == null) {
@@ -58,7 +55,11 @@ class ServerService {
           );
         }
 
-        final id = await _smsService.sendSms(number, message);
+        final id = await _smsService.sendSms(
+          number, 
+          message, 
+          id: body['taskId']?.toString()
+        );
         
         return Response.ok(
           json.encode({'status': 'sent', 'id': id, 'message': 'SMS queued successfully'}),

@@ -11,6 +11,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full bg-warm-ivory" suppressHydrationWarning>
       <head>
+        <title>SMS Relay | Secure SMS Gateway</title>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#fa520f" />
       </head>

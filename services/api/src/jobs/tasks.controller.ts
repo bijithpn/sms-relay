@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, ParseUUIDPipe, Sse, MessageEvent, OnModuleInit, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
 import { SpamPolicy } from '../entities/spam_policy.entity';
 import { Observable, interval, switchMap, map, from } from 'rxjs';
 import { SMSTask } from '../entities/sms_task.entity';
@@ -19,6 +20,8 @@ type CreateBulkTasksBody = {
   message?: string;
 };
 
+@ApiTags('SMS Tasks')
+@ApiBearerAuth('x-admin-secret')
 @Controller('tasks')
 export class TasksController implements OnModuleInit {
   constructor(
@@ -31,6 +34,7 @@ export class TasksController implements OnModuleInit {
     private readonly tasksService: TasksService,
   ) {}
 
+  @ApiOperation({ summary: 'Get security policy' })
   @Get('spam-policy')
   async getPolicy() {
     let policy = await this.spamPolicyRepository.findOne({ where: { type: 'GLOBAL' } });
@@ -41,6 +45,7 @@ export class TasksController implements OnModuleInit {
     return policy;
   }
 
+  @ApiOperation({ summary: 'Update security policy' })
   @Patch('spam-policy')
   async updatePolicy(@Body() update: Partial<SpamPolicy>) {
     const policy = await this.getPolicy();
@@ -90,6 +95,7 @@ export class TasksController implements OnModuleInit {
     }
   }
 
+  @ApiOperation({ summary: 'Stream tasks events (SSE)' })
   @Sse('events')
   streamEvents(): Observable<MessageEvent> {
     return interval(2000).pipe(
@@ -100,6 +106,7 @@ export class TasksController implements OnModuleInit {
     );
   }
 
+  @ApiOperation({ summary: 'Get messaging summary stats' })
   @Get('summary')
   async getSummary() {
     const total = await this.tasksRepository.count();
@@ -139,6 +146,7 @@ export class TasksController implements OnModuleInit {
     });
   }
 
+  @ApiOperation({ summary: 'Get pending tasks' })
   @Get('pending')
   findPending() {
     return this.tasksRepository.find({
@@ -149,6 +157,7 @@ export class TasksController implements OnModuleInit {
     });
   }
 
+  @ApiOperation({ summary: 'Get task by ID' })
   @Get(':id')
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.tasksRepository.findOne({
@@ -157,6 +166,7 @@ export class TasksController implements OnModuleInit {
     });
   }
 
+  @ApiOperation({ summary: 'Send single SMS' })
   @Post()
   async create(@Body() task: CreateTaskBody) {
     return this.createTaskInternal(task);
@@ -215,6 +225,7 @@ export class TasksController implements OnModuleInit {
     return savedTask;
   }
 
+  @ApiOperation({ summary: 'Send bulk SMS' })
   @Post('bulk')
   async createBulk(@Body() body: CreateBulkTasksBody) {
     const recipients = [...new Set((body.recipients || []).map((item) => this.normalizeRecipient(item)).filter(Boolean))];

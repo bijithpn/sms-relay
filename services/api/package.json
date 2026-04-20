@@ -10,6 +10,7 @@
     "@nestjs/common": "latest",
     "@nestjs/core": "latest",
     "@nestjs/platform-express": "latest",
+    "@nestjs/swagger": "^11.3.2",
     "@nestjs/typeorm": "latest",
     "@sms-relay/config": "workspace:*",
     "@sms-relay/types": "workspace:*",
@@ -18,6 +19,7 @@
     "pg": "latest",
     "rxjs": "^7.8.2",
     "socket.io": "latest",
+    "swagger-ui-express": "^5.0.1",
     "typeorm": "latest",
     "zod": "latest"
   },

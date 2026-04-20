@@ -39,7 +39,7 @@ export default function ApiReferencePage() {
     <div className="flex flex-col min-h-full bg-warm-ivory">
       <PageHeader
         title="API Reference"
-        description="Interactive OpenAPI documentation. Test the SMS and OTP endpoints directly from this interface."
+        description="Interactive OpenAPI documentation. Test the SMS and OTP endpoints directly from this interface using your Admin Secret."
       />
 
       <div className="flex-1 px-4 md:px-8 pb-12">
